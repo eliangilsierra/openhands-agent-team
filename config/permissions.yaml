@@ -1,0 +1,272 @@
+# config/permissions.yaml
+#
+# Least-privilege access boundaries for every agent.
+#
+# IMPORTANT: this file is a REPOSITORY CONVENTION and the team's access
+# specification. It does not configure OpenHands, GitHub or any token by
+# itself. Each boundary below states how it is enforced:
+#
+#   hard  - enforced by a system the agent cannot bypass: GitHub branch
+#           protection / rulesets, CODEOWNERS, GitHub token scopes, OpenHands
+#           secret scope per Agent Profile, OpenHands MCP server references.
+#   soft  - enforced by agent instructions (AGENTS.md, agents/*.md, Skills)
+#           and detected by review. Soft boundaries must never be the only
+#           protection for production-impacting actions.
+#
+# The hard controls that make the soft boundaries safe are listed in
+# "baseline_hard_controls" and must be configured in GitHub and OpenHands
+# (see docs/github-integration.md and docs/openhands-integration.md).
+#
+# Field vocabulary (identical for every agent):
+#   repository_read:      true | false
+#   issues:               none | read | comment | write        (write = create, edit, label)
+#   labels:               none | handoff | manage              (handoff = swap own agent:* label for the next one and add blocked / needs-human)
+#   pull_requests:        none | read | comment | create
+#   pull_request_reviews: none | comment | request-changes     (APPROVE is never granted to an agent)
+#   branch_write:         none | docs | feature                (docs = docs/<n>-<slug>; feature = feature|bugfix|refactor|chore/<n>-<slug>)
+#   writable_paths:       paths the agent may modify on its own branches (empty when branch_write is none)
+#   forbidden_paths:      paths the agent must never modify
+#   main_branch_write:    false for every agent
+#   merge:                false for every agent
+#   source_modification:  none | feature-branch
+#   test_modification:    none | assigned-only | feature-branch
+#   command_execution:    none | read-only | test-and-build | full-sandbox
+#   web_access:           true | false                       (internet access; driving a browser against an app started inside the sandbox is not web access)
+#   delegation:           true | false
+#   secrets:              names of OpenHands secrets the Agent Profile may receive (secret scope = Selected)
+
+schema_version: 1
+
+baseline_hard_controls:
+  github:
+    - "main is protected: Pull Request required, direct pushes and force pushes blocked, deletions blocked"
+    - At least one approving review from a human code owner is required (CODEOWNERS lists humans only)
+    - Approval of the most recent reviewable push is required, so a push after approval invalidates it
+    - "Required status checks: validate-repository in this repository; build, test and lint in target repositories"
+    - The agent GitHub identity (bot account or GitHub App) is not a code owner, cannot bypass rules and has no admin role
+    - The agent GitHub token is a fine-grained token or GitHub App installation token limited to the target repositories
+    - Auto-merge is disabled for agent-authored Pull Requests
+  openhands:
+    - Each Agent Profile uses secret scope "Selected" and receives only the secrets listed for its agent
+    - Each OpenHands-type Agent Profile references only the MCP servers listed for its agent in config/agents.yaml
+    - Credentials are stored only as OpenHands secrets, never in repository files
+
+# Paths no agent may modify without an Issue that explicitly authorises it
+# and human review (team-configuration-change approval point).
+protected_paths:
+  - AGENTS.md
+  - config/permissions.yaml
+  - config/workflow.yaml
+  - .github/workflows/
+  - .github/CODEOWNERS
+  - SECURITY.md
+
+agents:
+  product-manager:
+    repository_read: true
+    issues: write
+    labels: handoff
+    pull_requests: read
+    pull_request_reviews: none
+    branch_write: none
+    writable_paths: []
+    forbidden_paths: ["application source code", "tests", ".github/workflows/", "docs/decisions/"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: read-only
+    web_access: false
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    enforcement:
+      hard: [main protection, merge approval, secret scope]
+      soft: [no branch writes, no source modification]
+
+  researcher:
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: read
+    pull_request_reviews: none
+    branch_write: docs
+    writable_paths: [docs/research/]
+    forbidden_paths: ["application source code", "tests", ".github/workflows/", "docs/decisions/"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: read-only
+    web_access: true
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    enforcement:
+      hard: [main protection, merge approval, secret scope]
+      soft: [writes limited to docs/research/, no source modification]
+
+  architect:
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: comment
+    pull_request_reviews: comment
+    branch_write: docs
+    writable_paths: [docs/architecture/, docs/decisions/]
+    forbidden_paths: ["application source code", "tests", ".github/workflows/"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: read-only
+    web_access: true
+    delegation: false
+    secrets: [GITHUB_TOKEN, ANTHROPIC_API_KEY]
+    notes: >-
+      Production source modification is not allowed unless a human explicitly
+      requests a proof of concept in the Issue; even then it is delivered on a
+      docs/ or feature/ branch Pull Request and never merged without review.
+      ANTHROPIC_API_KEY is only needed when Claude Code is not authenticated
+      through a subscription login in the runtime.
+    enforcement:
+      hard: [main protection, merge approval, secret scope]
+      soft: [writes limited to docs/architecture/ and docs/decisions/]
+
+  planner:
+    repository_read: true
+    issues: write
+    labels: handoff
+    pull_requests: read
+    pull_request_reviews: none
+    branch_write: none
+    writable_paths: []
+    forbidden_paths: ["application source code", "tests", ".github/workflows/", "docs/decisions/"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: read-only
+    web_access: false
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    notes: The Planner is the only agent allowed to add the ai-ready label.
+    enforcement:
+      hard: [main protection, merge approval, secret scope]
+      soft: [no branch writes, ai-ready only after readiness checklist]
+
+  developer:
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: create
+    pull_request_reviews: none
+    branch_write: feature
+    writable_paths: ["files within the scope of the assigned task Issue", "tests", "documentation affected by the change"]
+    forbidden_paths: [".github/workflows/ (unless the Issue explicitly authorises it)", "docs/decisions/ ADR status fields", "secrets and .env files"]
+    main_branch_write: false
+    merge: false
+    source_modification: feature-branch
+    test_modification: feature-branch
+    command_execution: full-sandbox
+    web_access: true
+    delegation: false
+    secrets: [GITHUB_TOKEN, ANTHROPIC_API_KEY]
+    notes: >-
+      full-sandbox means any command inside the isolated OpenHands sandbox.
+      It never includes commands against production systems or deployment
+      targets. ANTHROPIC_API_KEY only when no Claude Code subscription login is used.
+    enforcement:
+      hard: [main protection, merge approval, required status checks, secret scope]
+      soft: [scope limited to the task Issue, branch naming]
+
+  qa-engineer:
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: comment
+    pull_request_reviews: comment
+    branch_write: feature
+    writable_paths: ["test files on the Pull Request branch, only when test authoring is explicitly assigned"]
+    forbidden_paths: ["application source code", ".github/workflows/", "docs/decisions/"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: assigned-only
+    command_execution: test-and-build
+    web_access: false
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    enforcement:
+      hard: [main protection, merge approval, secret scope]
+      soft: [no production code modification, test authoring only when assigned]
+
+  code-reviewer:
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: comment
+    pull_request_reviews: request-changes
+    branch_write: none
+    writable_paths: []
+    forbidden_paths: ["any file - the Code Reviewer reports, it does not fix"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: test-and-build
+    web_access: false
+    delegation: false
+    secrets: [GITHUB_TOKEN, ANTHROPIC_API_KEY]
+    notes: Reviews are submitted as COMMENT or REQUEST_CHANGES. APPROVE is reserved for humans.
+    enforcement:
+      hard: [main protection, human code owner approval, secret scope]
+      soft: [no file modification, never APPROVE]
+
+  security-reviewer:
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: comment
+    pull_request_reviews: request-changes
+    branch_write: none
+    writable_paths: []
+    forbidden_paths: ["any file - the Security Reviewer reports, it does not fix"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: test-and-build
+    web_access: true
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    notes: >-
+      May run dependency and static analysis scanners inside the sandbox.
+      Never runs active attacks against deployed environments. Never repeats
+      a discovered secret value in a comment.
+    enforcement:
+      hard: [main protection, human code owner approval, secret scope]
+      soft: [no file modification, never APPROVE, no active testing of deployed systems]
+
+  orchestrator:
+    repository_read: true
+    issues: comment
+    labels: manage
+    pull_requests: read
+    pull_request_reviews: none
+    branch_write: none
+    writable_paths: []
+    forbidden_paths: ["any file - the Orchestrator coordinates, it does not implement"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: read-only
+    web_access: false
+    delegation: true
+    secrets: [GITHUB_TOKEN]
+    notes: >-
+      labels: manage allows applying any workflow label except ai-ready
+      (Planner or human only) and removing any label except needs-human
+      (human only).
+    enforcement:
+      hard: [main protection, merge approval, secret scope]
+      soft: [no implementation, label rules from config/workflow.yaml]
