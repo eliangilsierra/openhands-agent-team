@@ -1,0 +1,80 @@
+# config/skills.yaml
+#
+# Canonical catalogue of team Skills.
+#
+# Each Skill is a directory skills/<name>/ containing SKILL.md. The SKILL.md
+# frontmatter (name, description) follows the portable Agent Skills format
+# that OpenHands documents for .agents/skills/<name>/SKILL.md, so the same
+# directories can be installed into an OpenHands workspace or user skill
+# directory, or into a Claude Code skills directory, without modification.
+# See docs/openhands-integration.md "Installing Skills".
+#
+# "agents" lists the agents that must load the Skill (their primary procedure).
+# "consumers" lists agents that read the Skill to understand or check the
+# outputs produced with it, without executing its procedure.
+
+schema_version: 1
+
+skills:
+  product-management:
+    path: skills/product-management/SKILL.md
+    purpose: Turn an idea or business problem into evidence-based, testable requirements and a feature Issue.
+    agents: [product-manager]
+    consumers: [planner, qa-engineer, orchestrator]
+    templates: [templates/requirements.md]
+
+  research:
+    path: skills/research/SKILL.md
+    purpose: Answer a technical or product question with classified, sourced evidence and a justified recommendation.
+    agents: [researcher, architect]
+    consumers: [product-manager, orchestrator]
+    templates: [templates/research.md]
+
+  architecture:
+    path: skills/architecture/SKILL.md
+    purpose: Produce the simplest architecture that satisfies the requirements, with explicit trade-offs and ADRs.
+    agents: [architect]
+    consumers: [planner, developer, code-reviewer, security-reviewer]
+    templates: [templates/architecture.md, templates/adr.md]
+
+  planning:
+    path: skills/planning/SKILL.md
+    purpose: Decompose requirements and architecture into small, ordered, traceable task Issues.
+    agents: [planner]
+    consumers: [developer, orchestrator]
+    templates: [templates/implementation-plan.md]
+
+  development:
+    path: skills/development/SKILL.md
+    purpose: Implement one task Issue on a dedicated branch and deliver a validated Pull Request.
+    agents: [developer]
+    consumers: [code-reviewer]
+    templates: []
+
+  testing:
+    path: skills/testing/SKILL.md
+    purpose: Define and execute the test strategy and report results as PASS, FAIL, BLOCKED or NOT APPLICABLE with reproducible evidence.
+    agents: [qa-engineer, developer]
+    consumers: [code-reviewer, planner]
+    templates: [templates/test-plan.md]
+
+  code-review:
+    path: skills/code-review/SKILL.md
+    purpose: Review a Pull Request across twelve ordered dimensions and report evidence-based findings by severity.
+    agents: [code-reviewer]
+    consumers: [developer]
+    templates: [templates/code-review.md]
+
+  security-review:
+    path: skills/security-review/SKILL.md
+    purpose: Identify exploitable weaknesses in a change and report actionable remediation by severity.
+    agents: [security-reviewer]
+    consumers: [developer, architect, code-reviewer]
+    templates: [templates/security-review.md]
+
+  orchestration:
+    path: skills/orchestration/SKILL.md
+    purpose: Route work between agents, keep workflow state in GitHub consistent and escalate blocked work to humans.
+    agents: [orchestrator]
+    consumers: []
+    templates: []

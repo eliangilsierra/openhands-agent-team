@@ -1,0 +1,18 @@
+# Code owners for the openhands-agent-team repository.
+#
+# Code owners must be HUMANS. Never list the agent bot account or GitHub App here:
+# branch protection requires a code-owner approval, and that approval is the human
+# merge decision described in AGENTS.md and docs/workflow.md.
+#
+# Replace or extend the owner below when the team grows.
+
+*                         @eliangilsierra
+
+# Team configuration: changes require explicit human review (approval point
+# team-configuration-change in config/workflow.yaml).
+/AGENTS.md                @eliangilsierra
+/SECURITY.md              @eliangilsierra
+/config/permissions.yaml  @eliangilsierra
+/config/workflow.yaml     @eliangilsierra
+/.github/workflows/       @eliangilsierra
+/.github/CODEOWNERS       @eliangilsierra

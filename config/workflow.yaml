@@ -1,0 +1,334 @@
+# config/workflow.yaml
+#
+# Canonical specification of the engineering lifecycle, its states, the
+# transitions between agents, the feedback loops and the human approval points.
+# It also defines the shared vocabularies (labels, severities, QA results,
+# review outcomes, research classifications, branch prefixes) that every
+# document in this repository must use.
+#
+# This file is a REPOSITORY CONVENTION. It is not executed by OpenHands.
+# Workflow state is materialised in GitHub through labels, Issue/PR state and
+# comments. See docs/workflow.md for the narrative and diagrams.
+
+schema_version: 1
+
+# ---------------------------------------------------------------------------
+# States
+# ---------------------------------------------------------------------------
+# owner: agent id from config/agents.yaml, or "human".
+# github: how the state is visible in GitHub.
+# conditional: the state may be skipped when skip_when applies.
+states:
+  idea:
+    owner: human
+    github: Issue opened from the feature or bug form, no agent label yet
+    description: A request exists but nobody has analysed it.
+
+  bug-reproduction:
+    owner: qa-engineer
+    github: "Bug Issue labeled agent:qa"
+    description: A reported defect is reproduced and documented before it is planned.
+
+  product-definition:
+    owner: product-manager
+    github: "Issue labeled agent:product"
+    description: Requirements, scope and acceptance criteria are being defined.
+
+  research:
+    owner: researcher
+    github: "Issue labeled agent:research"
+    conditional: true
+    skip_when: No open technical or product question blocks a decision.
+    description: Evidence is collected to answer open questions.
+
+  architecture:
+    owner: architect
+    github: "Issue labeled agent:architect"
+    conditional: true
+    skip_when: >-
+      The change fits inside existing components and introduces no new
+      component, external dependency, public API, data model change, trust
+      boundary or infrastructure.
+    description: The design and any ADRs are produced.
+
+  planning:
+    owner: planner
+    github: "Issue labeled agent:planner"
+    description: Work is decomposed into task Issues.
+
+  ready-for-development:
+    owner: developer
+    github: "Task Issue labeled ai-ready and agent:developer"
+    description: A task passed the readiness checklist and can be picked up.
+
+  in-development:
+    owner: developer
+    github: "Task Issue labeled agent:developer (ai-ready removed) with a linked branch or draft Pull Request"
+    description: The task is being implemented.
+
+  qa:
+    owner: qa-engineer
+    github: "Pull Request labeled agent:qa"
+    description: Acceptance criteria and regressions are validated.
+
+  code-review:
+    owner: code-reviewer
+    github: "Pull Request labeled agent:reviewer"
+    description: Semantic code review is performed.
+
+  security-review:
+    owner: security-reviewer
+    github: "Pull Request labeled agent:security"
+    description: Security review is performed.
+
+  awaiting-human-approval:
+    owner: human
+    github: "Pull Request labeled needs-human, all required checks green"
+    description: A human decides whether the change is merged.
+
+  merged:
+    owner: human
+    github: Pull Request merged by a human; task Issue closed by the closing keyword
+    terminal: true
+    description: The change is integrated.
+
+  blocked:
+    owner: orchestrator
+    github: "Issue or Pull Request labeled blocked (plus needs-human when a human must act)"
+    description: Work cannot continue until a named dependency or decision is resolved.
+
+  cancelled:
+    owner: human
+    github: Issue closed as not planned / Pull Request closed without merge
+    terminal: true
+    description: Work was intentionally stopped by a human.
+
+# ---------------------------------------------------------------------------
+# Forward transitions (the happy path)
+# ---------------------------------------------------------------------------
+transitions:
+  - from: idea
+    to: product-definition
+    by: orchestrator
+    condition: A human or the Orchestrator accepts the request for analysis.
+  - from: idea
+    to: bug-reproduction
+    by: orchestrator
+    condition: The Issue is a bug report whose expected behaviour is clear.
+  - from: idea
+    to: research
+    by: orchestrator
+    condition: The Issue is a standalone research request.
+  - from: idea
+    to: architecture
+    by: orchestrator
+    condition: The Issue is a standalone architecture request with defined requirements.
+  - from: bug-reproduction
+    to: planning
+    by: qa-engineer
+    condition: The reported behaviour reproduces; minimal reproduction steps are posted.
+  - from: bug-reproduction
+    to: product-definition
+    by: qa-engineer
+    condition: Expected behaviour is unclear or disputed.
+  - from: bug-reproduction
+    to: cancelled
+    by: human
+    condition: The behaviour does not reproduce and a human closes the report.
+  - from: product-definition
+    to: research
+    by: product-manager
+    condition: Requirements contain open questions that need evidence.
+  - from: product-definition
+    to: architecture
+    by: product-manager
+    condition: Requirements are complete and architectural work is required.
+  - from: product-definition
+    to: planning
+    by: product-manager
+    condition: Requirements are complete and architecture can be skipped.
+  - from: research
+    to: architecture
+    by: researcher
+    condition: Research answered the questions and design work is required.
+  - from: research
+    to: planning
+    by: researcher
+    condition: Research answered the questions and architecture can be skipped.
+  - from: architecture
+    to: planning
+    by: architect
+    condition: Architecture document is published and every required ADR is Accepted by a human.
+  - from: planning
+    to: ready-for-development
+    by: planner
+    condition: Each task Issue passes the readiness checklist in skills/planning/SKILL.md.
+  - from: ready-for-development
+    to: in-development
+    by: developer
+    condition: The Developer creates the branch and starts work.
+  - from: in-development
+    to: qa
+    by: developer
+    condition: Pull Request opened, local validation passed, CI checks green or failures explained.
+  - from: qa
+    to: code-review
+    by: qa-engineer
+    condition: QA verdict is PASS.
+  - from: code-review
+    to: security-review
+    by: code-reviewer
+    condition: Review outcome is NO BLOCKING FINDINGS.
+  - from: security-review
+    to: awaiting-human-approval
+    by: security-reviewer
+    condition: Review outcome is NO BLOCKING FINDINGS.
+  - from: awaiting-human-approval
+    to: merged
+    by: human
+    condition: A human approves and merges. Agents never merge.
+
+# ---------------------------------------------------------------------------
+# Feedback loops
+# ---------------------------------------------------------------------------
+feedback_loops:
+  - name: qa-failure
+    from: qa
+    to: in-development
+    trigger: QA verdict is FAIL.
+    then: [qa, code-review, security-review]
+  - name: code-review-changes-requested
+    from: code-review
+    to: in-development
+    trigger: Review outcome is CHANGES REQUESTED (any open BLOCKER or HIGH finding).
+    then: [qa, code-review, security-review]
+  - name: security-changes-requested
+    from: security-review
+    to: in-development
+    trigger: Review outcome is CHANGES REQUESTED (any open BLOCKER or HIGH finding).
+    then: [qa, code-review, security-review]
+  - name: human-changes-requested
+    from: awaiting-human-approval
+    to: in-development
+    trigger: The human reviewer requests changes.
+    then: [qa, code-review, security-review, awaiting-human-approval]
+  - name: requirement-gap
+    from: [planning, in-development, qa]
+    to: product-definition
+    trigger: Requirements are ambiguous, contradictory or missing.
+  - name: design-gap
+    from: [planning, in-development, code-review]
+    to: architecture
+    trigger: The change requires a design decision that no document or ADR covers.
+  - name: evidence-gap
+    from: [product-definition, architecture]
+    to: research
+    trigger: A decision depends on an unverified claim.
+
+# A loop that repeats too often indicates a planning or requirements problem.
+loop_limits:
+  max_review_cycles_per_pull_request: 3
+  on_limit_exceeded: Move to blocked, add needs-human, and post a summary of the unresolved findings.
+
+# ---------------------------------------------------------------------------
+# Human approval points
+# ---------------------------------------------------------------------------
+human_approval_points:
+  - id: requirements-sign-off
+    state: product-definition
+    required: recommended
+    description: A human confirms scope and acceptance criteria for new features before planning.
+  - id: adr-acceptance
+    state: architecture
+    required: true
+    description: An ADR moves from Proposed to Accepted only with human approval.
+  - id: risk-acceptance
+    state: [code-review, security-review]
+    required: true
+    description: An open HIGH finding may only be deferred when a human explicitly accepts the risk in a PR comment.
+  - id: merge-approval
+    state: awaiting-human-approval
+    required: true
+    description: Every merge into a protected branch requires an approving review from a human code owner.
+  - id: team-configuration-change
+    state: any
+    required: true
+    description: Changes to config/permissions.yaml, config/workflow.yaml, AGENTS.md or .github/workflows/ require human review.
+
+# ---------------------------------------------------------------------------
+# Shared vocabularies
+# ---------------------------------------------------------------------------
+labels:
+  ai-ready:
+    color: "0e8a16"
+    description: Task passed the readiness checklist and can be implemented by an agent.
+  "agent:product":
+    color: "1d76db"
+    description: Owned by the Product Manager agent.
+  "agent:research":
+    color: "1d76db"
+    description: Owned by the Researcher agent.
+  "agent:architect":
+    color: "1d76db"
+    description: Owned by the Architect agent.
+  "agent:planner":
+    color: "1d76db"
+    description: Owned by the Planner agent.
+  "agent:developer":
+    color: "1d76db"
+    description: Owned by the Developer agent.
+  "agent:qa":
+    color: "1d76db"
+    description: Owned by the QA Engineer agent.
+  "agent:reviewer":
+    color: "1d76db"
+    description: Owned by the Code Reviewer agent.
+  "agent:security":
+    color: "1d76db"
+    description: Owned by the Security Reviewer agent.
+  blocked:
+    color: "b60205"
+    description: Work cannot continue until a named dependency or decision is resolved.
+  needs-human:
+    color: "d93f0b"
+    description: A human decision or approval is required.
+
+label_rules:
+  - At most one agent:* label is present on an Issue or Pull Request at any time; it names the current owner.
+  - The owning agent replaces its own agent:* label with the next owner's label when it hands off.
+  - Only the Planner or a human adds ai-ready.
+  - Any agent may add blocked or needs-human when it escalates (AGENTS.md section 13).
+  - blocked is always accompanied by a comment naming the blocker and the party that can resolve it.
+  - needs-human is removed only by a human.
+
+severity_levels:
+  BLOCKER: Must be fixed before merge. The change is incorrect, unsafe, loses data, breaks a requirement or exposes a secret.
+  HIGH: Must be fixed before merge unless a human explicitly accepts the risk in writing on the Pull Request.
+  MEDIUM: Should be fixed in this Pull Request; otherwise a linked follow-up Issue is required.
+  LOW: Improvement with limited impact; a follow-up Issue is optional.
+  NIT: Optional remark that never blocks a merge.
+
+qa_results:
+  PASS: The check was executed and the observed behaviour matches the expectation.
+  FAIL: The check was executed and the observed behaviour does not match. Requires reproduction steps and evidence.
+  BLOCKED: The check could not be executed. Requires the cause and what is needed to unblock it.
+  NOT APPLICABLE: The check does not apply to this change. Requires a one-line justification.
+
+review_outcomes:
+  CHANGES REQUESTED: At least one open BLOCKER or HIGH finding.
+  NO BLOCKING FINDINGS: No open BLOCKER or HIGH findings. Never equivalent to merge approval.
+  BLOCKED: The review could not be completed. The reason and the missing input are stated.
+
+research_classifications:
+  FACT: Verified directly in an authoritative source that is cited, or reproduced by the researcher.
+  EVIDENCE: A specific, cited source and what it says, including unverified claims made by that source.
+  ASSUMPTION: Believed true but not verified; states what would verify it.
+  INTERPRETATION: The researcher's reasoning from facts and evidence.
+  RECOMMENDATION: A proposed course of action that references the facts and interpretations it relies on.
+
+branch_prefixes:
+  feature: New functionality - feature/<issue-number>-<short-description>
+  bugfix: Defect correction - bugfix/<issue-number>-<short-description>
+  refactor: Behaviour-preserving restructuring - refactor/<issue-number>-<short-description>
+  chore: Tooling, dependencies, build or CI - chore/<issue-number>-<short-description>
+  docs: Documentation, architecture documents, ADRs and research reports only - docs/<issue-number>-<short-description>
