@@ -122,9 +122,9 @@ server is needed initially (see [mcp-integration.md](mcp-integration.md)).
 
 ### 3.6 Skills
 
-- [ ] Install the Skills (section 4).
+- [ ] Install the Skills with one route from section 4 (recommended order: A, then C).
 - [ ] Start a conversation with each profile and ask it to list the Skills it can see. Record the
-      result. For ACP profiles, see the known limitation in
+      result and the route used. For ACP profiles, see the known limitation in
       [acp-integration.md](acp-integration.md#10-skills-and-agentsmd-for-acp-profiles).
 
 ### 3.7 Smoke test
@@ -135,16 +135,51 @@ server is needed initially (see [mcp-integration.md](mcp-integration.md)).
 ## 4. Installing Skills
 
 Every directory in [skills/](../skills/README.md) is a self-contained `SKILL.md` package whose
-frontmatter `name` equals the directory name, as OpenHands requires for portable skills. Choose
-one installation scope (*Official* scopes; *Convention* for which one to pick):
+frontmatter `name` equals the directory name, as OpenHands requires for portable skills. The
+repository root also contains [plugin.json](../plugin.json), which makes the whole repository a
+plugin in the portable *Agent Plugins* format.
 
-| Scope | Location | When to use |
-| --- | --- | --- |
-| User (runtime-wide) | `~/.agents/skills/<name>/SKILL.md` in the OpenHands runtime | Recommended for a single self-hosted installation: all target repositories get the same team Skills |
-| Organisation | Organisation skills, where your OpenHands edition supports them | Teams using organisation-level management |
-| Repository / project | `<target-repo>/.agents/skills/<name>/SKILL.md` | When a target repository must pin a specific Skill version |
+*Official* (OpenHands documentation, checked 2026-10-01): a root `plugin.json` with `$schema` and
+`name` is the only mandatory file of an Agent Plugins package; skills are discovered
+non-recursively at `skills/<name>/SKILL.md`, so `skills/README.md` and every other directory of this
+repository are ignored by the plugin loader; roles in this repository's `agents/` are **not** loaded
+as plugin agents (the portable format reads agents from `dev.openhands/agents/`). Agent Canvas lists
+plugins on the **Plugins** page of the sidebar, where installed plugins can be inspected, enabled,
+disabled and uninstalled, and plugins found in `~/.agents/plugins` or `~/.openhands/plugins` appear as
+read-only **Local** plugins that must be confirmed. Enabled installed plugins are available to new
+conversations on that backend automatically.
 
-Installing at user scope (run inside the environment whose home directory the agent server uses):
+Choose **one** route at a time; installing the same Skills through two routes can duplicate them.
+
+| Route | How | Documentation status | Use when |
+| --- | --- | --- | --- |
+| **A. Local plugin directory** | Clone this repository into `~/.agents/plugins/openhands-agent-team`, open **Plugins**, confirm the Local plugin | Directory and *Local* status are official; the exact confirmation flow depends on your version | First choice: no authentication needed in the UI, works with a private repository |
+| **B. Install from a Git source** | In **Plugins**, install from a source such as `github:<owner>/openhands-agent-team`, optionally pinned to a tag (`#v0.1.0`) | Source syntax is official for loading plugins; the Agent Canvas steps for custom sources and private repositories are **not documented** | You want version pinning and updates from the UI; verify access to a private repository first |
+| **C. User skills directory** | Copy the Skill directories into `~/.agents/skills/` (below) | Official | Fallback when plugins do not work in your version |
+
+### Route A — local plugin directory
+
+Run where the agent server's home directory lives. With the Docker image, mount the host directory
+(never `~/.openhands/skills`, which would overwrite the public skills cache):
+
+```bash
+mkdir -p ~/.agents/plugins
+git clone --depth 1 https://github.com/<owner>/openhands-agent-team.git ~/.agents/plugins/openhands-agent-team
+```
+
+```text
+-v "$HOME/.agents/plugins:/home/openhands/.agents/plugins:ro"
+```
+
+Then open **Plugins**, find `openhands-agent-team` with status *Local*, and confirm it. Update it
+with `git pull` in that directory and restart the backend if the Skills do not refresh.
+
+### Route B — install from a Git source
+
+Use the **Plugins** page. Pin to a release tag for reproducibility once the repository publishes
+tags. If installing from a private repository fails, use route A or C.
+
+### Route C — user skills directory
 
 ```bash
 git clone --depth 1 https://github.com/<owner>/openhands-agent-team.git /tmp/openhands-agent-team
@@ -152,10 +187,22 @@ mkdir -p ~/.agents/skills
 cp -R /tmp/openhands-agent-team/skills/*/ ~/.agents/skills/
 ```
 
-`skills/README.md` is not a Skill and is not copied (the glob copies directories only).
+`skills/README.md` is not a Skill and is not copied (the glob copies directories only). Other
+scopes exist (*Official*): organisation skills, and `<target-repo>/.agents/skills/<name>/SKILL.md` when
+a target repository must pin a Skill version. The `/add-skill <github-url>` chat command installs a
+single Skill into the **workspace** `.agents/skills/` and uses `GITHUB_TOKEN` for private repositories.
 
-Re-run the copy after every change to `skills/` on `main`. *Convention:* record the commit SHA
-you installed in the runtime notes so drift can be detected.
+### Verification
+
+Re-run the update after every change to `skills/` on `main`, and record the commit SHA you
+installed in the runtime notes so drift can be detected. After installing, start a conversation with
+an OpenHands-type profile and ask it to list the Skills it can see.
+
+*Known limitation:* the same applies to Skills delivered by plugins in ACP sessions: in versions
+affected by [OpenHands/OpenHands#16905](https://github.com/OpenHands/OpenHands/issues/16905) enabled
+Skills may not reach Claude Code. The mitigation in
+[acp-integration.md](acp-integration.md#10-skills-and-agentsmd-for-acp-profiles) (read the `SKILL.md`
+from this repository) works regardless of route.
 
 ## 5. Target repository setup
 
