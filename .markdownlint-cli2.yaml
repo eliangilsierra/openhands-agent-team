@@ -1,0 +1,17 @@
+# markdownlint configuration used by .github/workflows/validate-repository.yml
+config:
+  default: true
+  # Long lines are allowed: tables and prose read better unwrapped in many places.
+  MD013: false
+  # Inline HTML is used for comments in templates and <br/> in Mermaid labels.
+  MD033: false
+  # Templates intentionally start with an artifact header line before the H1.
+  MD041: false
+  # Repeated headings (for example "Positive"/"Negative") are allowed across sections.
+  MD024:
+    siblings_only: true
+  # Template finding headings use bold labels as list items.
+  MD036: false
+ignores:
+  - "node_modules/**"
+  - "LICENSE"

@@ -1,0 +1,30 @@
+# Secrets and credentials - never commit (see SECURITY.md)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.credentials.json
+.claude/
+.openhands/mcp.json
+secrets/
+
+# Local tooling
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+actionlint
+actionlint.exe
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
