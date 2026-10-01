@@ -123,6 +123,7 @@ openhands-agent-team/
 ├── CONTRIBUTING.md               How humans change this repository
 ├── SECURITY.md                   Secret handling and vulnerability reporting
 ├── LICENSE                       Apache License 2.0
+├── plugin.json                   Makes the repository an OpenHands plugin (skills/)
 ├── agents/                       One role definition per agent (+ README)
 ├── skills/                       One operational SKILL.md per skill (+ README)
 ├── docs/

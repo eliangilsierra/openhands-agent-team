@@ -70,7 +70,8 @@ branch, a Pull Request, deterministic validation and human review.
    that load it in [config/agents.yaml](config/agents.yaml) and their role files' *Required skills*.
 5. Add a template under `templates/` if the Skill produces a document, and reference it.
 6. Update [skills/README.md](skills/README.md) and [README.md](README.md).
-7. After merge, re-install Skills in the runtime ([docs/openhands-integration.md](docs/openhands-integration.md#4-installing-skills)).
+7. After merge, update the Skills in the runtime, through the installation route you use
+   ([docs/openhands-integration.md](docs/openhands-integration.md#4-installing-skills)).
 
 ## Modifying a Skill
 
@@ -127,6 +128,7 @@ The [validate-repository](.github/workflows/validate-repository.yml) workflow mu
 | Role file, Skill, ADR, Issue form and PR template structure | `scripts/validate_repository.py` |
 | Consistency of `config/agents.yaml`, `skills.yaml`, `workflow.yaml`, `permissions.yaml` | `scripts/validate_repository.py` |
 | Shared vocabulary | `scripts/validate_repository.py` |
+| `plugin.json` schema, name and version | `scripts/validate_repository.py` |
 | Secret patterns, secret-bearing files, placeholder markers, application source | `scripts/validate_repository.py` |
 | Markdown style | `markdownlint-cli2` with [.markdownlint-cli2.yaml](.markdownlint-cli2.yaml) |
 | Workflow syntax | `actionlint` |

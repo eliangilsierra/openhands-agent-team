@@ -58,8 +58,9 @@ role through the Agent Profile and activation prompt, not by keyword.
 See [docs/agent-lifecycle.md](../docs/agent-lifecycle.md#3-consuming-skills) and
 [docs/openhands-integration.md](../docs/openhands-integration.md#4-installing-skills). In short:
 
-1. The Skills directory is installed where the runtime discovers skills (workspace, project, user
-   or organisation level for OpenHands; the Claude Code skills directory for ACP profiles).
+1. The Skills are installed where the runtime discovers them: as an OpenHands plugin (the repository
+   root contains [plugin.json](../plugin.json)), in a user, project or organisation skills directory,
+   or in the Claude Code skills directory for ACP profiles.
 2. The activation prompt names the Skills the role must use.
 3. If a Skill is not visible in the session (a known limitation for some ACP versions), the agent
    reads `SKILL.md` directly from this repository before starting.

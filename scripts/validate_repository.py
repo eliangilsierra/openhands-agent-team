@@ -32,6 +32,7 @@ REQUIRED_FILES = [
     "CONTRIBUTING.md",
     "SECURITY.md",
     "LICENSE",
+    "plugin.json",
     "agents/README.md",
     "agents/product-manager.md",
     "agents/researcher.md",
@@ -111,6 +112,9 @@ PR_SECTIONS = [
     "Summary", "Related Issue", "Changes", "Architecture impact", "Tests",
     "Security considerations", "Documentation", "Breaking changes", "Checklist",
 ]
+
+PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+PLUGIN_NAME = "openhands-agent-team"
 
 SEVERITIES = ["BLOCKER", "HIGH", "MEDIUM", "LOW", "NIT"]
 QA_RESULTS = ["PASS", "FAIL", "BLOCKED", "NOT APPLICABLE"]
@@ -614,6 +618,29 @@ def check_issue_templates(report: Report, labels: dict) -> None:
             report.error(f".github/workflows/ai-workflow.yml: PR check does not verify '{section}'")
 
 
+def check_plugin(report: Report) -> None:
+    """The repository root is an OpenHands plugin in the portable Agent Plugins format."""
+    manifest = ROOT / "plugin.json"
+    data = json.loads(read(manifest))
+    if data.get("$schema") != PLUGIN_SCHEMA:
+        report.error(f"plugin.json: $schema must be {PLUGIN_SCHEMA}")
+    if data.get("name") != PLUGIN_NAME:
+        report.error(f"plugin.json: name must be '{PLUGIN_NAME}'")
+    if not re.fullmatch(r"\d+\.\d+\.\d+(-[0-9A-Za-z.\-]+)?", str(data.get("version", ""))):
+        report.error("plugin.json: version must be semantic (for example 0.1.0)")
+    if not str(data.get("description", "")).strip():
+        report.error("plugin.json: description is required")
+    # Only plugin.json at the root decides the format; a legacy manifest directory would be
+    # ambiguous and would make the roles in agents/ look like plugin agents.
+    for legacy in (".plugin", ".claude-plugin"):
+        if (ROOT / legacy).exists():
+            report.error(f"{legacy}/ must not exist: plugin.json alone selects the portable format")
+    skills = {p.name for p in (ROOT / "skills").iterdir() if p.is_dir()}
+    for name in sorted(skills):
+        if not (ROOT / "skills" / name / "SKILL.md").is_file():
+            report.error(f"skills/{name}: plugin skills must be skills/<name>/SKILL.md")
+
+
 def check_adrs(report: Report) -> None:
     decisions = ROOT / "docs" / "decisions"
     index = read(decisions / "README.md")
@@ -727,6 +754,10 @@ def main() -> int:
     before = len(report.errors)
     check_issue_templates(report, workflow.get("labels", {}))
     report.section("Issue forms, PR template and ai-workflow alignment", before)
+
+    before = len(report.errors)
+    check_plugin(report)
+    report.section("Plugin manifest (plugin.json) and skill layout", before)
 
     before = len(report.errors)
     check_adrs(report)
