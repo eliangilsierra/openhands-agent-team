@@ -7,9 +7,10 @@
 #
 #   Issue labeled ai-ready  -> task-readiness: every required task section is present,
 #                              otherwise ai-ready is removed and the Issue returns to the Planner.
-#   Pull Request events     -> pull-request-conventions: branch name, linked Issue,
-#                              template sections, at most one agent:* label; the job summary
-#                              names the Agent Profile that owns the next step.
+#   Pull Request events     -> pull-request-conventions: Conventional Commits title and
+#                              commits, branch name, exactly one closing keyword whose Issue number
+#                              matches the branch, template sections, at most one agent:* label;
+#                              the job summary names the Agent Profile that owns the next step.
 #
 # Intended flow (agents perform the semantic work, Actions the deterministic checks):
 #   Issue labeled ai-ready -> Developer -> Branch -> Implementation -> Tests -> Pull Request -> Reviewer
@@ -105,7 +106,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - name: Check branch, linked Issue, template and labels
+      - name: Check title, branch, closing keyword, commits, template and labels
         uses: actions/github-script@v9
         with:
           script: |
@@ -113,19 +114,33 @@ jobs:
             // HTML comments are template guidance (they contain examples such as "Closes #122")
             // and are ignored by GitHub, so they are ignored here too.
             const body = (pr.body || '').replace(/\r\n/g, '\n').replace(/<!--[\s\S]*?-->/g, '');
+            const title = pr.title || '';
             const branch = pr.head.ref;
             const problems = [];
 
-            const automatedBranch = /^(dependabot|renovate)\//.test(branch);
-            const branchPattern = /^(feature|bugfix|refactor|chore|docs)\/[0-9]+-[a-z0-9]+(-[a-z0-9]+)*$/;
-            if (!automatedBranch && !branchPattern.test(branch)) {
-              problems.push(`Branch "${branch}" does not match <feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>.`);
-            }
+            const automated = /^(dependabot|renovate)\//.test(branch);
+            const types = 'feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert';
+            const conventional = new RegExp(`^(${types})(\\([a-z0-9][a-z0-9-]*\\))?!?: [a-z0-9].*[^.\\s]$`);
+            const isConventional = (line) => line.length <= 72 && conventional.test(line);
+            const form = '<type>(<scope>): <description> (72 characters at most), for example "feat(timer): add rest countdown (#42)"';
 
-            if (!automatedBranch) {
-              const closing = /\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\s+([\w.-]+\/[\w.-]+)?#\d+/i;
-              if (!closing.test(body)) {
-                problems.push('The description does not link an Issue with a closing keyword (for example "Closes #42").');
+            if (!automated) {
+              if (!isConventional(title)) {
+                problems.push(`The title "${title}" does not follow Conventional Commits: ${form}.`);
+              }
+
+              const branchMatch = /^(feature|bugfix|refactor|chore|docs)\/([0-9]+)-[a-z0-9]+(-[a-z0-9]+)*$/.exec(branch);
+              if (!branchMatch) {
+                problems.push(`Branch "${branch}" does not match <feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>.`);
+              }
+
+              const closed = new Set();
+              const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+\/[\w.-]+)?#(\d+)/gi;
+              for (const m of body.matchAll(closing)) closed.add(m[1]);
+              if (closed.size !== 1) {
+                problems.push(`The description must link exactly one Issue with a closing keyword (for example "Closes #42"); found ${closed.size}.`);
+              } else if (branchMatch && !closed.has(branchMatch[2])) {
+                problems.push(`The branch names Issue #${branchMatch[2]} but the Pull Request closes #${[...closed][0]}. One Pull Request per task Issue.`);
               }
 
               const sections = [
@@ -136,6 +151,22 @@ jobs:
                 if (!new RegExp(`^##\\s+${section}\\s*$`, 'm').test(body)) {
                   problems.push(`Missing template section "## ${section}".`);
                 }
+              }
+
+              const commits = await github.paginate(github.rest.pulls.listCommits, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100,
+              });
+              const bad = [];
+              for (const c of commits) {
+                if ((c.parents || []).length > 1) continue; // merge commits are squashed away on merge
+                const subject = c.commit.message.split('\n')[0];
+                if (!isConventional(subject)) bad.push(`${c.sha.slice(0, 7)} ${subject}`);
+              }
+              if (bad.length) {
+                problems.push(`Commits that do not follow Conventional Commits:\n${bad.slice(0, 10).map((b) => `  - ${b}`).join('\n')}`);
               }
             }
 
