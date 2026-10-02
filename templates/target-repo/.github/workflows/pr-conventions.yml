@@ -1,0 +1,114 @@
+# Pull Request conventions for a project worked on by the agent team.
+# Copy this file to .github/workflows/pr-conventions.yml of the project. Agents cannot create or
+# change workflow files, so a human adds it.
+#
+# It checks, without any AI: Conventional Commits PR title and commit subjects, branch name
+# (<feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>), exactly one closing
+# keyword whose Issue number matches the branch, the Pull Request template sections, and at most one
+# agent:* label. Mark the job "pr-conventions" as a required status check once it has run.
+#
+# Security: only the pull_request event is used (never pull_request_target); the Pull Request text is
+# read inside JavaScript and never interpolated into a shell command.
+
+name: pr-conventions
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  pr-conventions:
+    name: pr-conventions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check title, branch, closing keyword, commits, template and labels
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            // HTML comments are template guidance (they contain examples such as "Closes #122")
+            // and are ignored by GitHub, so they are ignored here too.
+            const body = (pr.body || '').replace(/\r\n/g, '\n').replace(/<!--[\s\S]*?-->/g, '');
+            const title = pr.title || '';
+            const branch = pr.head.ref;
+            const problems = [];
+
+            const automated = /^(dependabot|renovate)\//.test(branch);
+            const types = 'feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert';
+            const conventional = new RegExp(`^(${types})(\\([a-z0-9][a-z0-9-]*\\))?!?: [a-z0-9].*[^.\\s]$`);
+            const isConventional = (line) => line.length <= 72 && conventional.test(line);
+            const form = '<type>(<scope>): <description> (72 characters at most), for example "feat(timer): add rest countdown (#42)"';
+
+            if (!automated) {
+              if (!isConventional(title)) {
+                problems.push(`The title "${title}" does not follow Conventional Commits: ${form}.`);
+              }
+
+              const branchMatch = /^(feature|bugfix|refactor|chore|docs)\/([0-9]+)-[a-z0-9]+(-[a-z0-9]+)*$/.exec(branch);
+              if (!branchMatch) {
+                problems.push(`Branch "${branch}" does not match <feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>.`);
+              }
+
+              const closed = new Set();
+              const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+\/[\w.-]+)?#(\d+)/gi;
+              for (const m of body.matchAll(closing)) closed.add(m[1]);
+              if (closed.size !== 1) {
+                problems.push(`The description must link exactly one Issue with a closing keyword (for example "Closes #42"); found ${closed.size}.`);
+              } else if (branchMatch && !closed.has(branchMatch[2])) {
+                problems.push(`The branch names Issue #${branchMatch[2]} but the Pull Request closes #${[...closed][0]}. One Pull Request per task Issue.`);
+              }
+
+              const sections = [
+                'Summary', 'Related Issue', 'Changes', 'Architecture impact', 'Tests',
+                'Security considerations', 'Documentation', 'Breaking changes', 'Checklist',
+              ];
+              for (const section of sections) {
+                if (!new RegExp(`^##\\s+${section}\\s*$`, 'm').test(body)) {
+                  problems.push(`Missing template section "## ${section}".`);
+                }
+              }
+
+              const commits = await github.paginate(github.rest.pulls.listCommits, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100,
+              });
+              const bad = [];
+              for (const c of commits) {
+                if ((c.parents || []).length > 1) continue; // merge commits are squashed away on merge
+                const subject = c.commit.message.split('\n')[0];
+                if (!isConventional(subject)) bad.push(`${c.sha.slice(0, 7)} ${subject}`);
+              }
+              if (bad.length) {
+                problems.push(`Commits that do not follow Conventional Commits:\n${bad.slice(0, 10).map((b) => `  - ${b}`).join('\n')}`);
+              }
+            }
+
+            const agentLabels = pr.labels.map((l) => l.name).filter((n) => n.startsWith('agent:'));
+            if (agentLabels.length > 1) {
+              problems.push(`More than one agent:* label: ${agentLabels.join(', ')}. Exactly one agent owns a Pull Request.`);
+            }
+
+            core.summary.addHeading(`Pull Request #${pr.number} conventions`);
+            if (problems.length) {
+              core.summary.addList(problems);
+            } else {
+              core.summary.addRaw('All conventions satisfied.');
+            }
+            core.summary.write();
+
+            if (problems.length) {
+              const message = problems.join('\n');
+              if (pr.draft) {
+                core.warning(`Draft Pull Request - fix before marking ready:\n${message}`);
+              } else {
+                core.setFailed(message);
+              }
+            }
