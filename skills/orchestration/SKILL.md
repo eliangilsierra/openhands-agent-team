@@ -61,9 +61,14 @@ pulled in exactly when a decision is theirs.
 
 ### Delegation comment format
 
+This is the same "Next step" comment that every agent posts when its stage ends
+([docs/workflow.md](../../docs/workflow.md#5-hand-off-protocol)); the Orchestrator writes it for a
+work item whose previous agent did not.
+
 ```markdown
 **Delegation** · Orchestrator · state: <current> → <next>
-Next owner: <Agent name> (`<label>`)
+Next owner: <Agent name> (`<label>`) — profile `<profile name>` — role `<id>`
+Activation message: <the standard message from agents/<id>.md with the work item filled in>
 Expected artifact: <artifact> using <template link>, persisted in <location>
 Inputs available: <links to requirements, research, architecture, ADRs, PR, QA report>
 Notes: <skip decisions and why; constraints; deadline if any>

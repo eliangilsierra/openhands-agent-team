@@ -26,7 +26,8 @@ and a human approves everything that reaches a protected branch.
 3. **Simplicity first.** Prefer the simplest solution that satisfies the requirements. New
    infrastructure, services or dependencies require justification and, when architectural, an ADR.
 4. **Stay in your role.** Do your own stage's work. Hand work that belongs to another role to that
-   role through GitHub; do not do it yourself.
+   role through GitHub; do not do it yourself. A conversation covers one stage of one work item
+   (see section 16).
 5. **Leave a trail.** Anything another agent or a human needs later is written to GitHub, not kept
    in conversation memory.
 6. **Fail loudly.** A blocked, failed or partial result is reported as such. Never report success
@@ -74,12 +75,24 @@ The canonical definitions are in [`config/agents.yaml`](config/agents.yaml),
 ## 5. Git workflow
 
 1. Every change to a repository happens on a branch and reaches `main` through a Pull Request.
-2. One branch and one Pull Request per task Issue. Do not combine unrelated Issues.
-3. Commit messages use the imperative mood, describe *why* as well as *what*, and reference the
-   Issue: `Add rate limit to login endpoint (#42)`.
-4. Keep history readable: small, coherent commits; no merge commits from `main` into your branch
-   unless conflict resolution requires it; never rewrite history that others have reviewed.
-5. Never force-push to a branch that has review comments unless the reviewer asked for it.
+2. One branch and one Pull Request per task Issue. Never implement several task Issues on one
+   branch or in one Pull Request, and never combine unrelated Issues.
+3. Commit messages and Pull Request titles follow
+   [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <description>`.
+   Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+   `chore`, `revert`. The scope is optional, lowercase and short; the description is in the
+   imperative mood, starts in lowercase, has no trailing period and keeps the whole first line under
+   73 characters. Describe *why* in the body when it is not obvious. Reference the Issue in the
+   Pull Request title or body: `feat(timer): add rest countdown (#42)`.
+4. Git identity is set by the runtime (the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment
+   variables). Do not change `user.name` or `user.email`, and do not add `Co-Authored-By` trailers
+   unless the work item asks for them.
+5. Keep history readable: small, coherent commits; never rewrite history that others have
+   reviewed; never force-push to a branch that has review comments unless the reviewer asked for it.
+6. **Never run `git merge` into `main`, resolve conflicts by committing to `main`, or push to
+   `main`.** Integration happens only when a human merges the Pull Request on GitHub (the
+   repository allows squash merging only, so `main` keeps one Conventional Commit per Pull Request).
+   To resolve conflicts, update your own branch and push it.
 
 ## 6. Branching rules
 
@@ -99,12 +112,17 @@ The canonical definitions are in [`config/agents.yaml`](config/agents.yaml),
 
 - Use [`.github/pull_request_template.md`](.github/pull_request_template.md) completely. Write
   "None" rather than deleting a section.
-- Link the task Issue with a closing keyword (`Closes #42`).
+- The title follows Conventional Commits (section 5).
+- Link the task Issue with **exactly one** closing keyword (`Closes #42`). Issues are closed by the
+  merge of their Pull Request, not by hand.
 - Open the Pull Request as a draft until local validation passes.
 - A Pull Request must be reviewable in one sitting. If the diff grows beyond the task scope, stop
   and ask the Planner to split the Issue.
 - **Agents never merge, never enable auto-merge and never submit an `APPROVE` review.** AI reviews
   are submitted as `COMMENT` or `REQUEST_CHANGES`. Merge approval belongs to a human code owner.
+  Writing "approved for merge" in a comment is also forbidden.
+- Reviews are GitHub reviews on the Pull Request, and QA reports are Pull Request comments.
+  Neither is committed to the repository as a file.
 
 ## 8. Testing requirements
 
@@ -197,8 +215,15 @@ unblock it.
 
 All agents must never:
 
-- Commit or push to `main` or any protected branch, merge a Pull Request, enable auto-merge, or
-  submit an `APPROVE` review.
+- Commit or push to `main` or any protected branch, merge a Pull Request (on GitHub or with a local
+  `git merge`), enable auto-merge, or submit an `APPROVE` review.
+- Implement more than one task Issue on a branch or in a Pull Request.
+- Take another role, run the next stage, or process another work item in the same conversation.
+- Review, test or security-review work that the same conversation or agent produced, or skip QA,
+  Code Review or Security Review.
+- Commit QA reports, reviews or status notes as repository files instead of posting them on the
+  Pull Request or Issue.
+- Change the configured git identity.
 - Commit, print or expose secrets or credentials.
 - Bypass, skip, weaken or delete tests, linters, CI checks, branch protection or code owners.
 - Silently change requirements, scope, acceptance criteria or accepted architecture decisions.
@@ -215,3 +240,24 @@ All agents must never:
 This repository contains only configuration, process and documentation — no application code.
 Agents changing it follow [CONTRIBUTING.md](CONTRIBUTING.md) and must run
 `python scripts/validate_repository.py` before opening a Pull Request.
+
+## 16. Conversation scope and workspace
+
+1. **One stage per conversation.** A conversation performs exactly one stage for exactly one work
+   item (one Issue or one Pull Request), hands it off and stops. Do not continue with the next
+   stage, do not take another role and do not pick up other work items, even if you believe you
+   could finish the whole flow. The activation message names the role and the work item; if it
+   names none, ask before doing anything.
+2. **Independence.** The agent that produced a change never reviews it. QA, Code Review and
+   Security Review are separate conversations that start from the Pull Request on GitHub. Skipping
+   one of them is not allowed for any Pull Request; only the stages marked conditional in
+   [`config/workflow.yaml`](config/workflow.yaml) can be skipped, and only for the stated reasons.
+3. **Workspace.** Work inside the conversation's current working directory (the workspace shown in
+   the OpenHands interface). Clone the target repository there. Read the team repository with
+   `gh api`, or clone it outside the workspace; never copy team files into the target repository's
+   working tree. Do not do the work in `/tmp`, in another shared directory or in another
+   conversation's workspace.
+4. **Labels.** When your stage ends, replace your `agent:*` label with the next owner's. Remove
+   `ai-ready` when development starts. Do not close Issues by hand.
+5. **Hand-off.** End every conversation with a "Next step" comment on the work item: the stage
+   that follows, the exact Agent Profile and role id to use, and the activation message to paste.

@@ -20,12 +20,14 @@ flowchart TD
 
 ## 1. Receiving work
 
-An agent run always concerns exactly **one work item** (an Issue or a Pull Request) and runs with
-the Agent Profile named after the role.
+An agent run always concerns exactly **one stage of one work item** (an Issue or a Pull Request)
+and runs with the Agent Profile named after the role. When the stage ends the agent hands off and the
+conversation stops: the next stage is a different conversation, so that nobody reviews their own
+work and every stage leaves its artifact in GitHub (AGENTS.md section 16).
 
 | Phase | How the run starts |
 | --- | --- |
-| Phase 1 (current) | A human sees the `agent:*` label, starts an OpenHands conversation with the matching Agent Profile on the target repository, and sends the role's activation prompt with the work item filled in. |
+| Phase 1 (current) | A human sees the `agent:*` label (or reads the Orchestrator's "Next step" comment), starts an OpenHands conversation with the matching Agent Profile, and sends the role's activation prompt with the work item filled in. The agent works in the conversation's own workspace and clones the target repository there. |
 | Later phases | An automation starts the conversation when a label or event occurs (see [automation.md](automation.md)). The activation prompt is the same. |
 
 The work item is valid for the agent only if it carries the agent's `agent:*` label (and

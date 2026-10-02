@@ -46,17 +46,28 @@ Every role file contains these sections, in this order:
 
 ## Activation prompts
 
-OpenHands Agent Profiles select *which agent and configuration* runs a conversation; the role
-behaviour is delivered through context. Each role file therefore ends with an **activation
-prompt**: the first message a human (or, later, an automation) sends when starting a conversation
-with that profile. Values in double braces are filled in at activation time:
+OpenHands Agent Profiles select *which agent and configuration* runs a conversation; for Claude
+Code (ACP) profiles there is no field to store role instructions, so the role behaviour is delivered
+through context. Each role file therefore ends with an **activation prompt**: the first message a
+human (or, later, an automation) sends when starting a conversation with that profile. The message
+is written in Spanish for the people who send it; the files it points to are in English.
+
+Rules of the standard message, identical for every role:
+
+| Rule | Why |
+| --- | --- |
+| The first line is `Rol: <id>`, and the profile chosen in the chat launcher has the same name | The profile fixes the model and the secrets; the line fixes the role |
+| The work item is named and the message says "SOLO este trabajo" | One stage and one work item per conversation (AGENTS.md section 16) |
+| Work happens in the conversation's current directory; the team repository is read with `gh api` | The OpenHands interface shows that workspace |
+| The agent stops after the "Siguiente paso" comment | A different conversation does each following stage |
+
+Values in double braces are filled in at activation time:
 
 | Variable | Meaning |
 | --- | --- |
 | `{{team_repo}}` | URL of this repository, for example `https://github.com/<owner>/openhands-agent-team` |
 | `{{target_repo}}` | `owner/name` of the application repository being worked on |
-| `{{issue}}` | Issue number or URL of the work item |
-| `{{pull_request}}` | Pull Request number or URL of the work item |
+| `{{work_item}}` | Issue or Pull Request number of the work item, for example `#12` |
 
 ## Ownership boundaries at a glance
 

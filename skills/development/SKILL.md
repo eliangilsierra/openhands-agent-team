@@ -17,6 +17,9 @@ with the architecture, free of secrets, and easy to review — without bypassing
 
 Do not use this Skill for tasks that are not `ai-ready`; ask the Planner instead.
 
+One conversation implements **one** task Issue. Do not continue with another task, with QA or with
+review in the same conversation, even when the remaining tasks look small (AGENTS.md section 16).
+
 ## Inputs
 
 - Task Issue (all nine sections) and its parent feature Issue.
@@ -59,6 +62,10 @@ Issue → Understand requirements → Inspect repository → Inspect architectur
    | `refactor/<issue-number>-<short-description>` | Behaviour-preserving restructuring |
    | `chore/<issue-number>-<short-description>` | Tooling, dependencies, build, CI |
 
+   The branch number is the number of the task Issue you are implementing, not a counter and not a
+   range (`feature/42-login-rate-limit`, never `task/5-11-ui`). Work in the conversation's current
+   working directory: clone the repository there.
+
    Never work on `main`. If you find yourself on `main`, stop and switch before any edit.
    Remove the `ai-ready` label from the task Issue (keep `agent:developer`): the task is now
    `in-development`.
@@ -74,13 +81,16 @@ Issue → Understand requirements → Inspect repository → Inspect architectur
 12. **Review diff.** Run `git diff origin/main...HEAD` and check: only task-scoped changes; no
     secrets, tokens, `.env`, credentials or personal data; no debug prints, commented-out code,
     stray files or large generated artefacts; error handling present; docs updated.
-13. **Commit.** Small, coherent commits, imperative subject, Issue reference:
-    `Reject login after 5 failed attempts (#122)`.
+13. **Commit.** Small, coherent commits in Conventional Commits form
+    (`<type>(<scope>): <description>`, imperative, under 73 characters), with the Issue reference in
+    the Pull Request title or body: `feat(auth): reject login after 5 failed attempts`. Do not change
+    the git identity and do not add `Co-Authored-By` trailers.
 14. **Push.** `git push -u origin <branch>`.
-15. **Open PR.** Open a **draft** Pull Request using `.github/pull_request_template.md`, with
-    `Closes #<issue>`, the exact validation commands and their results, and any interpretation
-    you made. When CI is green (or failures are proven unrelated), mark it ready, add label
-    `agent:qa`, and comment the hand-off.
+15. **Open PR.** Open a **draft** Pull Request using `.github/pull_request_template.md`, titled in
+    Conventional Commits form (`feat(auth): reject login after 5 failed attempts (#122)`), with
+    exactly one `Closes #<issue>`, the exact validation commands and their results, and any
+    interpretation you made. When CI is green (or failures are proven unrelated), mark it ready, add
+    label `agent:qa`, post the "Next step" comment and **stop**. Do not merge.
 
 **Handling feedback.** For each QA `FAIL` or review finding: reproduce it, fix it on the same
 branch in a new commit, and reply in the thread with the commit SHA — or dispute it with
@@ -89,7 +99,10 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 
 ## Rules
 
-- Never commit to, push to or merge into `main`. Never enable auto-merge.
+- Never commit to, push to or merge into `main`, on GitHub or with a local `git merge`. Never
+  enable auto-merge. To resolve conflicts, update your own branch and push it.
+- One task Issue per branch and per Pull Request. If the task is too large, stop and ask the
+  Planner to split it; do not batch several tasks together.
 - Never skip, delete, `xfail`/`skip`-mark or weaken a test, linter rule or CI check to get green.
 - Never silently modify requirements or deviate from an Accepted ADR.
 - Never commit secrets, credentials, `.env` files or real personal data; use the project's
@@ -109,7 +122,10 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 
 ## Quality checklist
 
-- [ ] Branch name matches `<prefix>/<issue-number>-<short-description>`; not on `main`.
+- [ ] Branch name matches `<prefix>/<issue-number>-<short-description>` with the number of the one
+      task Issue; not on `main`.
+- [ ] Commit messages and the Pull Request title follow Conventional Commits.
+- [ ] The Pull Request has exactly one `Closes #<issue>`.
 - [ ] Every acceptance criterion is implemented and covered by a test.
 - [ ] Baseline tests were run before the change; full suite passes after it.
 - [ ] Lint, type checks and build pass.
@@ -130,6 +146,13 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 - Third feedback cycle on the same PR → `blocked` + `needs-human`.
 
 ## Examples
+
+**Pull Request title and commits:**
+
+```text
+feat(auth): reject login after 5 failed attempts (#122)
+test(auth): cover throttle reset on successful login
+```
 
 **Pull Request description (excerpt):**
 
