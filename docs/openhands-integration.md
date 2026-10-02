@@ -211,20 +211,72 @@ Each application repository the team works on should contain:
 | File | Content |
 | --- | --- |
 | `AGENTS.md` | Project facts (stack, commands for test/lint/build, structure, conventions) followed by the team contract: either a copy of this repository's [AGENTS.md](../AGENTS.md) or a short section that states it applies and links to it. *Official:* OpenHands loads the repository root `AGENTS.md` as always-on context. |
-| `CLAUDE.md` | For ACP profiles: Claude Code reads `CLAUDE.md` natively. Make it import the shared contract with a line containing only `@AGENTS.md`, so both backends receive the same rules. |
+| `CLAUDE.md` | For ACP profiles. *Official* (Claude Code memory documentation): Claude Code reads `AGENTS.md` directly only when the project has no `CLAUDE.md`, and only from version 2.1.277. A `CLAUDE.md` whose content is a line with `@AGENTS.md` works with every version and keeps the same rules for both backends. |
 | `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md` | Copied from this repository. |
 | `.github/CODEOWNERS` | Human owners. |
+| `.github/workflows/pr-conventions.yml` | Deterministic check of branch name, Conventional Commits title and commits, and exactly one closing keyword. |
 | `docs/decisions/`, `docs/architecture/` | Created by the Architect when first needed. |
 | CI workflows | Build, lint and test jobs used as required status checks. |
 
+Ready-made copies of the project `AGENTS.md`, `CLAUDE.md` and `pr-conventions.yml` are in
+[templates/target-repo/](../templates/target-repo/README.md). Agents cannot add or change files under
+`.github/workflows/`, so a human copies the workflow in.
+
+### Workspace
+
+*Official:* each conversation has a workspace, "the folder, repository, container mount, or cloud
+sandbox the agent works in". The OpenHands interface shows the files and changes of that folder. In
+the Docker setup the folder of a conversation looks like
+`/home/openhands/workspace/project/<conversation-id>`.
+
+*Convention* ([AGENTS.md](../AGENTS.md#16-conversation-scope-and-workspace)): the agent works in that
+folder, clones the target repository there and reads the team repository with `gh api`. Cloning into
+another directory (for example a shared `/projects` mount) hides the work from the interface and mixes
+the work of different conversations. Every conversation starts with a fresh workspace, so GitHub is
+the only state shared between stages.
+
+### Git identity
+
+OpenHands sets a default git identity (`OpenHands <openhands@anthropic.com>`). To make commits carry
+a person's identity instead, define these four environment variables in the runtime of the OpenHands
+deployment (for example Coolify environment variables) and redeploy. Git gives environment variables
+precedence over any `user.name` and `user.email` configuration, so the setting reaches every process,
+including the Claude Code subprocess:
+
+```text
+GIT_AUTHOR_NAME=<Your Name>
+GIT_AUTHOR_EMAIL=<id>+<github-user>@users.noreply.github.com
+GIT_COMMITTER_NAME=<Your Name>
+GIT_COMMITTER_EMAIL=<id>+<github-user>@users.noreply.github.com
+```
+
+These values are not secrets, but they are runtime configuration and do not belong in Git. Because
+commits then show the person as author, history no longer distinguishes what an agent wrote; the
+Pull Request, its labels and its reviews remain the record of which agent did what.
+
+### Global Claude Code memory
+
+ACP profiles have no field for role instructions. Claude Code reads `~/.claude/CLAUDE.md` in every
+session (*Official*), and in the Docker setup `~/.claude` is a persistent volume. A short file there
+holds what is common to all roles: where the team repository is, how the role is selected, language
+and GitHub authentication. [templates/runtime/claude-user-memory.md](../templates/runtime/claude-user-memory.md)
+contains the text to install; copy it to the volume as `CLAUDE.md` owned by the container user.
+Claude Code treats memory as context, not as enforced configuration, so the activation message
+repeats the essential rules.
+
 ## 6. Starting work (phase 1)
 
-1. Pick the work item (Issue or Pull Request) and identify its owner from the `agent:*` label.
-2. Start a new conversation in OpenHands using the Agent Profile with the same name, on the
-   target repository.
+1. Pick the work item (Issue or Pull Request) and identify its owner from the `agent:*` label, or
+   ask the Orchestrator for the "Next step" comment.
+2. Start a **new** conversation in OpenHands. In the chat launcher, open the `+` menu, choose
+   **Switch agent profile** and pick the profile of the role. The profile cannot be changed once the
+   conversation has started.
 3. Paste the activation prompt from the role file (for example
-   [agents/developer.md](../agents/developer.md#activation-prompt)) with the variables filled in.
-4. Let the agent finish its stage. Check that it persisted its artifact and handed off the label.
+   [agents/developer.md](../agents/developer.md#activation-prompt)) with the variables filled in. The
+   `Rol:` line must match the profile.
+4. Let the agent finish **its stage only**. Check that it persisted its artifact, handed off the
+   label and posted the "Next step" comment, and that it stopped. The next stage is a new
+   conversation (AGENTS.md section 16).
 
 ## 7. Keeping runtime and specification aligned
 

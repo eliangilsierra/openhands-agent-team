@@ -84,14 +84,19 @@ creates a milestone only when a human asked for it. Milestones never replace lab
   (or by the Architect/Researcher from a `docs/` branch for documentation).
 - Uses [.github/pull_request_template.md](../.github/pull_request_template.md) completely.
 - Opened as draft until local validation passes; marked ready and labelled `agent:qa`.
-- Links its Issue with a closing keyword: `Closes #n`.
+- Is titled in Conventional Commits form, for example `feat(timer): add rest countdown (#42)`, and
+  every commit follows the same form.
+- Links its Issue with exactly one closing keyword: `Closes #n`, where `n` is also the number in the
+  branch name. A Pull Request never closes several Issues.
 - Carries exactly one `agent:*` label while in the workflow, then `needs-human` when it awaits approval.
+- Is merged only by a human on GitHub, with **squash merge**: `main` keeps one Conventional Commit
+  per Pull Request and no `Merge branch ...` commits. Agents never merge, locally or on GitHub.
 
 ## 5. Reviews
 
 | Reviewer | Review event | Content |
 | --- | --- | --- |
-| QA Engineer | Comment (not a review) | QA report from [templates/test-plan.md](../templates/test-plan.md) |
+| QA Engineer | Pull Request comment (not a review, and never a file in the repository) | QA report from [templates/test-plan.md](../templates/test-plan.md) |
 | Code Reviewer | `REQUEST_CHANGES` or `COMMENT` | [templates/code-review.md](../templates/code-review.md) |
 | Security Reviewer | `REQUEST_CHANGES` or `COMMENT` | [templates/security-review.md](../templates/security-review.md) |
 | Human code owner | `APPROVE` or `REQUEST_CHANGES` | Merge decision |
@@ -135,6 +140,33 @@ Configure these settings in **every repository the agents work on** (and in this
 
 ### Branch protection or ruleset for `main`
 
+Protection is available on public repositories on every plan; on private repositories it requires a
+paid plan (check with `gh api repos/<owner>/<repo>/branches/main/protection`). There are two levels:
+
+| Level | Settings | What it prevents | Limit |
+| --- | --- | --- | --- |
+| **1** | Pull request required with 0 approvals, rules apply to administrators, no force pushes or deletions, linear history, conversations resolved | Any direct push to `main`, local `git merge` pushed to `main`, history rewrites | An agent that uses an administrator's token can still merge a Pull Request through the API. Instructions forbid it; only level 2 blocks it |
+| **2** | Level 1 plus at least 1 approving review from a human code owner, with the agents using a separate machine-user identity | An agent merging its own Pull Request: the author cannot approve it | Needs a second GitHub account and a token for it |
+
+Level 1 is the minimum before agents work on a repository. Apply it with the GitHub CLI:
+
+```bash
+gh api -X PUT repos/<owner>/<repo>/branches/main/protection --input - <<'EOF'
+{
+  "required_status_checks": null,
+  "enforce_admins": true,
+  "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": true},
+  "restrictions": null,
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": true
+}
+EOF
+```
+
+Level 2 checklist:
+
 - [ ] Require a pull request before merging.
 - [ ] Require at least 1 approving review.
 - [ ] Require review from Code Owners.
@@ -149,7 +181,16 @@ Configure these settings in **every repository the agents work on** (and in this
 ### Repository settings
 
 - [ ] Disable "Allow auto-merge" (or never enable it on agent Pull Requests).
+- [ ] Allow **squash merging only**, with the Pull Request title as the commit title and a blank
+      message, so that `main` holds Conventional Commits and no merge commits.
 - [ ] Enable "Automatically delete head branches".
+
+```bash
+gh api -X PATCH repos/<owner>/<repo> -F allow_merge_commit=false -F allow_rebase_merge=false \
+  -F allow_squash_merge=true -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=BLANK \
+  -F delete_branch_on_merge=true -F allow_auto_merge=false
+```
+
 - [ ] Create the labels from section 2.
 - [ ] Add a `CODEOWNERS` file listing **human** owners only (this repository ships
       [.github/CODEOWNERS](../.github/CODEOWNERS)).
@@ -164,7 +205,11 @@ Configure these settings in **every repository the agents work on** (and in this
       Contents read/write, Issues read/write, Pull requests read/write, Metadata read,
       Actions read (to read check results). No Administration, no Secrets, no Workflows write
       unless a task explicitly requires workflow changes.
-- [ ] The agent identity is not a code owner and has no admin role.
+- [ ] The agent identity is not a code owner and has no admin role. If agents use an administrator's
+      token (a single-person setup), only protection level 1 is effective.
+- [ ] *Unverified:* a fine-grained token of a machine user may not reach repositories owned by
+      another personal account; test it, or use an organisation, or a classic token limited to the
+      public-repository scope for public test repositories.
 - [ ] Store the token only as an OpenHands secret (see [openhands-integration.md](openhands-integration.md)).
 
 ### GitHub Actions secrets

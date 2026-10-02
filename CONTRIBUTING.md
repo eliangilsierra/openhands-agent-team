@@ -108,7 +108,10 @@ changes.
 
 ## Pull Request requirements
 
-- Linked Issue with a closing keyword; branch name per convention.
+- Linked Issue with exactly one closing keyword; branch name per convention, with the same Issue
+  number.
+- Pull Request title and commits in Conventional Commits form (`docs: explain squash merging`,
+  `feat(validator): check plugin.json`). The `ai-workflow` check verifies the title and the commits.
 - All template sections completed.
 - Terminology from `config/workflow.yaml` used exactly (states, labels, severities, QA results,
   review outcomes, research classifications).

@@ -137,6 +137,8 @@ openhands-agent-team/
 │   ├── automation.md             Phased automation plan
 │   └── decisions/                ADR process and ADRs
 ├── templates/                    Artifact templates used by the agents
+│   ├── target-repo/              Starter kit for a project the agents work on
+│   └── runtime/                  Text to install in the OpenHands runtime
 ├── config/
 │   ├── agents.yaml               Team specification
 │   ├── skills.yaml               Skill catalogue

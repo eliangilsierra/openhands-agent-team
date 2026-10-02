@@ -137,7 +137,16 @@ At the end of its stage, the owning agent:
 
 1. Persists its artifact in the location defined in [config/agents.yaml](../config/agents.yaml).
 2. Replaces its own `agent:*` label with the next owner's label (exactly one `agent:*` label at a time).
-3. Posts a hand-off comment: artifact link, outcome, next owner, anything the next owner must know.
+3. Posts the **Next step** comment and stops: the conversation does not continue with the next stage,
+   because the next stage is a different conversation (AGENTS.md section 16).
+
+```markdown
+**Next step** · <Agent> · state: <current> → <next>
+Artifact: <link to what this stage produced>   Outcome: <verdict or summary>
+Next stage: <stage> — profile `<profile name>` — role `<id>` — work item #<n>
+Activation message: the standard message from agents/<id>.md with the work item filled in
+Notes: <anything the next owner must know>
+```
 
 The Orchestrator verifies hand-offs, corrects inconsistent labels and escalates stalls.
 
