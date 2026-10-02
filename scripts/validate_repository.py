@@ -70,6 +70,11 @@ REQUIRED_FILES = [
     "templates/code-review.md",
     "templates/security-review.md",
     "templates/adr.md",
+    "templates/target-repo/README.md",
+    "templates/target-repo/AGENTS.md",
+    "templates/target-repo/CLAUDE.md",
+    "templates/target-repo/.github/workflows/pr-conventions.yml",
+    "templates/runtime/claude-user-memory.md",
     ".github/ISSUE_TEMPLATE/feature.yml",
     ".github/ISSUE_TEMPLATE/bug.yml",
     ".github/ISSUE_TEMPLATE/research.yml",
@@ -112,6 +117,8 @@ PR_SECTIONS = [
     "Summary", "Related Issue", "Changes", "Architecture impact", "Tests",
     "Security considerations", "Documentation", "Breaking changes", "Checklist",
 ]
+
+CONVENTIONAL_TYPES = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
 
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 PLUGIN_NAME = "openhands-agent-team"
@@ -641,6 +648,47 @@ def check_plugin(report: Report) -> None:
             report.error(f"skills/{name}: plugin skills must be skills/<name>/SKILL.md")
 
 
+def convention_lines(text: str) -> list[str]:
+    needles = ("const types = ", "const conventional = ", "const branchMatch = ", "const closing = ")
+    return [line.strip() for line in text.splitlines() if any(n in line for n in needles)]
+
+
+def check_conventions(report: Report) -> None:
+    """Conventional Commits, one stage per conversation and workspace rules stay consistent."""
+    agents_md = read(ROOT / "AGENTS.md")
+    for needle in ("Conventional Commits", "## 16. Conversation scope and workspace", "exactly one"):
+        if needle not in agents_md:
+            report.error(f"AGENTS.md: must state '{needle}'")
+    for commit_type in CONVENTIONAL_TYPES:
+        if f"`{commit_type}`" not in agents_md:
+            report.error(f"AGENTS.md: Conventional Commits type '{commit_type}' is not listed")
+
+    for name in ("skills/development/SKILL.md", "templates/target-repo/AGENTS.md"):
+        if "Conventional Commits" not in read(ROOT / name):
+            report.error(f"{name}: must require Conventional Commits")
+
+    for path in sorted((ROOT / "agents").glob("*.md")):
+        if path.name == "README.md":
+            continue
+        raw = read(path)
+        activation = raw[raw.index("## Activation prompt"):] if "## Activation prompt" in raw else ""
+        for needle in (f"Rol: {path.stem}", "SOLO este trabajo", "Siguiente paso", "Conventional Commits"):
+            if needle not in activation:
+                report.error(f"{rel(path)}: activation prompt must contain '{needle}'")
+
+    ai = convention_lines(read(ROOT / ".github" / "workflows" / "ai-workflow.yml"))
+    kit = convention_lines(read(ROOT / "templates" / "target-repo" / ".github" / "workflows" / "pr-conventions.yml"))
+    if not ai or ai != kit:
+        report.error("ai-workflow.yml and templates/target-repo pr-conventions.yml must use the same "
+                     "Conventional Commits, branch and closing-keyword rules")
+    types_line = next((line for line in ai if line.startswith("const types = ")), "")
+    if sorted(types_line.split("'")[1].split("|") if "'" in types_line else []) != sorted(CONVENTIONAL_TYPES):
+        report.error(f"ai-workflow.yml: commit types must be exactly {CONVENTIONAL_TYPES}")
+
+    if "Rol:" not in read(ROOT / "templates" / "runtime" / "claude-user-memory.md"):
+        report.error("templates/runtime/claude-user-memory.md: must explain the 'Rol:' line")
+
+
 def check_adrs(report: Report) -> None:
     decisions = ROOT / "docs" / "decisions"
     index = read(decisions / "README.md")
@@ -758,6 +806,10 @@ def main() -> int:
     before = len(report.errors)
     check_plugin(report)
     report.section("Plugin manifest (plugin.json) and skill layout", before)
+
+    before = len(report.errors)
+    check_conventions(report)
+    report.section("Conventions: Conventional Commits, one stage per conversation, PR checks", before)
 
     before = len(report.errors)
     check_adrs(report)
