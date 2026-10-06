@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review a Pull Request semantically in a fixed order - requirements, correctness, architecture, security, error handling, data integrity, performance, maintainability, tests, observability, documentation, regression risk - and report evidence-based findings with Severity, Location, Problem, Evidence, Impact and Recommendation on the BLOCKER/HIGH/MEDIUM/LOW/NIT scale. Use after QA has passed.
+description: Review a Pull Request semantically in a fixed order - requirements, correctness, architecture, security, error handling, data integrity, performance, maintainability, tests, observability, documentation, regression risk - and report evidence-based findings with Severity, Location, Problem, Evidence, Impact and Recommendation on the BLOCKER/HIGH/MEDIUM/LOW/NIT scale. Use after QA has passed, in parallel with the security review.
 ---
 
 # Code Review
@@ -61,7 +61,12 @@ them so precisely that the Developer can act without a follow-up conversation.
    - `BLOCKED` — the review cannot be completed (PR too large, missing context, branch does not build).
 8. **Submit.** Post one review using [templates/code-review.md](../../templates/code-review.md):
    event `REQUEST_CHANGES` for `CHANGES REQUESTED`, otherwise `COMMENT`. Place line-specific
-   findings as review comments on the exact lines. Move the label: `agent:security` or `agent:developer`.
+   findings as review comments on the exact lines. You run in parallel with the security reviewer;
+   the coordinator moves the labels once both outcomes are in.
+   When the agents use the same GitHub identity as the Pull Request author, GitHub does not accept
+   `REQUEST_CHANGES` on your own Pull Request: submit `COMMENT` with the outcome in the body and, for
+   `CHANGES REQUESTED`, add the label `changes-requested` (it makes the Pull Request check fail).
+   Never submit `APPROVE`.
 
 **Re-review.** Verify each earlier finding and mark it `fixed` / `not fixed` / `disputed`, review
 only the new changes for new problems, and recompute the outcome.

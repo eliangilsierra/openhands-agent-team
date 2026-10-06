@@ -42,7 +42,10 @@ and trace back to requirements so nothing is lost and nothing is added.
    < ~400 changed lines excluding generated code and fixtures; one primary concern). Split any
    task that touches unrelated components or needs more than one migration.
 5. **Dependencies and order.** For each task list blocking tasks (`Depends on #n`) and mark tasks
-   that can proceed in parallel. Avoid dependency chains longer than necessary.
+   that can proceed in parallel. Avoid dependency chains longer than necessary. In the Technical
+   approach of every task, add a line `Touches: <paths or globs>` with the files it is expected to
+   change: the coordinator runs two developers in parallel only on tasks whose `Touches` sets do not
+   overlap.
 6. **Write each task Issue** with the sections below. Copy the minimum context needed and link the
    rest. Assign `AC` IDs from the feature (and task-specific ones, `T-AC-n`, where a task needs
    finer criteria).
