@@ -174,15 +174,19 @@ transitions:
   - from: qa
     to: code-review
     by: qa-engineer
-    condition: QA verdict is PASS.
-  - from: code-review
+    condition: QA verdict is PASS. Code review and security review then run in parallel.
+  - from: qa
     to: security-review
+    by: qa-engineer
+    condition: QA verdict is PASS. Code review and security review then run in parallel.
+  - from: code-review
+    to: awaiting-human-approval
     by: code-reviewer
-    condition: Review outcome is NO BLOCKING FINDINGS.
+    condition: Both review outcomes are NO BLOCKING FINDINGS.
   - from: security-review
     to: awaiting-human-approval
     by: security-reviewer
-    condition: Review outcome is NO BLOCKING FINDINGS.
+    condition: Both review outcomes are NO BLOCKING FINDINGS.
   - from: awaiting-human-approval
     to: merged
     by: human
@@ -231,13 +235,42 @@ loop_limits:
   on_limit_exceeded: Move to blocked, add needs-human, and post a summary of the unresolved findings.
 
 # ---------------------------------------------------------------------------
+# Autonomy (ADR-0002): one coordinator session delegating to subagents
+# ---------------------------------------------------------------------------
+autonomy:
+  entry_point: 'One message to the "team" Agent Profile, for example "Build: <idea>", "continue" or "resume #<issue>".'
+  human_gates: [adr-acceptance, merge-approval]
+  gates_are_per_item: true          # while one item waits for a human, independent items continue
+  max_concurrent_subagents: 4
+  parallel_groups:
+    - [code-review, security-review]  # after QA PASS, on the same pull request
+  developer_parallelism:
+    max: 2
+    requires: [no unmet dependency, disjoint "touches" file sets declared by the Planner, own worktree and branch]
+  never_parallel:
+    - product-definition, architecture and planning of the same feature
+    - two agents writing the same branch
+    - a task that depends on an unmerged pull request
+  escalation:
+    ladder: [haiku, sonnet, opus]
+    triggers: [partial result (max turns reached), no heartbeat for stall_minutes, time budget exceeded without checkpoint progress, the same validation failure twice]
+    stall_minutes: 10
+    max_escalations_per_item: 1
+    after_last_escalation: Move to blocked and add needs-human with a summary.
+  checkpoints:
+    local: .agent-state/items/<number>.md
+    board: .agent-state/board.md
+    github: one "Checkpoint" comment per item and one "Team board" comment on the parent Issue, edited in place
+    write_when: [stage start, each milestone, before stopping, on failure]
+
+# ---------------------------------------------------------------------------
 # Human approval points
 # ---------------------------------------------------------------------------
 human_approval_points:
   - id: requirements-sign-off
     state: product-definition
-    required: recommended
-    description: A human confirms scope and acceptance criteria for new features before planning.
+    required: false
+    description: Optional. The team does not stop here; a human can still comment on the requirements Issue at any time.
   - id: adr-acceptance
     state: architecture
     required: true
@@ -292,9 +325,13 @@ labels:
   needs-human:
     color: "d93f0b"
     description: A human decision or approval is required.
+  changes-requested:
+    color: "e99695"
+    description: QA or a reviewer requested changes; the pull request cannot be merged until it is removed.
 
 label_rules:
-  - At most one agent:* label is present on an Issue or Pull Request at any time; it names the current owner.
+  - At most one agent:* label is present on an Issue or Pull Request at any time; it names the current owner. The only exception is a Pull Request in parallel review, which carries agent:reviewer and agent:security together.
+  - changes-requested is added by QA or a reviewer when its verdict is FAIL or CHANGES REQUESTED, and removed by the same role when the next cycle passes. While it is present the pull request conventions check fails.
   - The owning agent replaces its own agent:* label with the next owner's label when it hands off.
   - Only the Planner or a human adds ai-ready.
   - Any agent may add blocked or needs-human when it escalates (AGENTS.md section 13).

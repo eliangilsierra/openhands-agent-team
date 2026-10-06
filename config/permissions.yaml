@@ -33,7 +33,10 @@
 #   command_execution:    none | read-only | test-and-build | full-sandbox
 #   web_access:           true | false                       (internet access; driving a browser against an app started inside the sandbox is not web access)
 #   delegation:           true | false
-#   secrets:              names of OpenHands secrets the Agent Profile may receive (secret scope = Selected)
+#   secrets:              names of OpenHands secrets the agent needs. All subagents share the environment of the
+#                         single "team" profile, so this is the union the profile receives (secret scope = Selected)
+#   restriction_level:    R0 coordinator | R1 read-only | R2 GitHub writer | R3 docs writer | R4 code writer.
+#                         Enforced by the hooks in templates/runtime/claude/hooks/ (see docs/subagents.md)
 
 schema_version: 1
 
@@ -47,9 +50,11 @@ baseline_hard_controls:
     - The agent GitHub token is a fine-grained token or GitHub App installation token limited to the target repositories
     - Auto-merge is disabled for agent-authored Pull Requests
   openhands:
-    - Each Agent Profile uses secret scope "Selected" and receives only the secrets listed for its agent
-    - Each OpenHands-type Agent Profile references only the MCP servers listed for its agent in config/agents.yaml
+    - The single "team" Agent Profile uses secret scope "Selected" and receives only GITHUB_TOKEN
     - Credentials are stored only as OpenHands secrets, never in repository files
+  claude_code:
+    - PreToolUse hooks deny pushes to main, merges, approvals, force pushes, identity changes and per-level writes; they run in every permission mode and inside subagents
+    - Git hooks (commit-msg, pre-push) enforce Conventional Commits, branch names and a secret scan even outside Claude Code
 
 # Paths no agent may modify without an Issue that explicitly authorises it
 # and human review (team-configuration-change approval point).
@@ -63,6 +68,7 @@ protected_paths:
 
 agents:
   product-manager:
+    restriction_level: R2
     repository_read: true
     issues: write
     labels: handoff
@@ -84,6 +90,7 @@ agents:
       soft: [no branch writes, no source modification]
 
   researcher:
+    restriction_level: R1
     repository_read: true
     issues: comment
     labels: handoff
@@ -105,6 +112,7 @@ agents:
       soft: [writes limited to docs/research/, no source modification]
 
   architect:
+    restriction_level: R3
     repository_read: true
     issues: comment
     labels: handoff
@@ -120,18 +128,17 @@ agents:
     command_execution: read-only
     web_access: true
     delegation: false
-    secrets: [GITHUB_TOKEN, ANTHROPIC_API_KEY]
+    secrets: [GITHUB_TOKEN]
     notes: >-
       Production source modification is not allowed unless a human explicitly
       requests a proof of concept in the Issue; even then it is delivered on a
       docs/ or feature/ branch Pull Request and never merged without review.
-      ANTHROPIC_API_KEY is only needed when Claude Code is not authenticated
-      through a subscription login in the runtime.
     enforcement:
       hard: [main protection, merge approval, secret scope]
       soft: [writes limited to docs/architecture/ and docs/decisions/]
 
   planner:
+    restriction_level: R2
     repository_read: true
     issues: write
     labels: handoff
@@ -154,6 +161,7 @@ agents:
       soft: [no branch writes, ai-ready only after readiness checklist]
 
   developer:
+    restriction_level: R4
     repository_read: true
     issues: comment
     labels: handoff
@@ -169,16 +177,17 @@ agents:
     command_execution: full-sandbox
     web_access: true
     delegation: false
-    secrets: [GITHUB_TOKEN, ANTHROPIC_API_KEY]
+    secrets: [GITHUB_TOKEN]
     notes: >-
       full-sandbox means any command inside the isolated OpenHands sandbox.
       It never includes commands against production systems or deployment
-      targets. ANTHROPIC_API_KEY only when no Claude Code subscription login is used.
+      targets.
     enforcement:
       hard: [main protection, merge approval, required status checks, secret scope]
       soft: [scope limited to the task Issue, branch naming]
 
   qa-engineer:
+    restriction_level: R1
     repository_read: true
     issues: comment
     labels: handoff
@@ -200,6 +209,7 @@ agents:
       soft: [no production code modification, test authoring only when assigned]
 
   code-reviewer:
+    restriction_level: R1
     repository_read: true
     issues: comment
     labels: handoff
@@ -215,13 +225,14 @@ agents:
     command_execution: test-and-build
     web_access: false
     delegation: false
-    secrets: [GITHUB_TOKEN, ANTHROPIC_API_KEY]
+    secrets: [GITHUB_TOKEN]
     notes: Reviews are submitted as COMMENT or REQUEST_CHANGES. APPROVE is reserved for humans.
     enforcement:
       hard: [main protection, human code owner approval, secret scope]
       soft: [no file modification, never APPROVE]
 
   security-reviewer:
+    restriction_level: R1
     repository_read: true
     issues: comment
     labels: handoff
@@ -247,6 +258,7 @@ agents:
       soft: [no file modification, never APPROVE, no active testing of deployed systems]
 
   orchestrator:
+    restriction_level: R0
     repository_read: true
     issues: comment
     labels: manage
