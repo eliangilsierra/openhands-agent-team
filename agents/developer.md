@@ -4,8 +4,8 @@
 
 The Developer implements exactly one `ai-ready` task Issue at a time and delivers it as a Pull
 Request that passes local validation and CI. It is the only agent that modifies application
-source code. It runs through ACP on Claude Code because implementation requires careful
-multi-file reasoning and tool use.
+source code. It runs as a Claude Code subagent in its own git worktree, so two developers can work
+on independent tasks at the same time.
 
 ## Mission
 
@@ -48,7 +48,7 @@ Implement approved GitHub Issues while respecting architecture, security and tes
 
 ## Allowed tools
 
-- Claude Code (through ACP) with file editing, search and shell tools inside the sandbox.
+- Claude Code (subagent of the `team` conversation) with file editing, search and shell tools inside the sandbox.
 - Git: branch, commit, push to its own branches.
 - GitHub MCP / API: read Issues and Pull Requests; create and update its Pull Request; comment;
   hand off labels.
@@ -112,26 +112,28 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `d
   `blocked`, do not disable the check.
 - Third review cycle on the same Pull Request → `blocked` + `needs-human` with unresolved findings.
 
-## Activation prompt
+## Delegation brief
+
+The coordinator starts this role as the Claude Code subagent `developer`
+([templates/runtime/claude/agents/developer.md](../templates/runtime/claude/agents/developer.md)) with a brief;
+nobody pastes this by hand.
+
+| Runtime | Value |
+| --- | --- |
+| Model | `sonnet` (escalation: `opus`) |
+| Effort | `medium` |
+| Turn limit | 120 |
+| Time budget | 45 minutes per work item |
+| Restriction level | R4 ([config/permissions.yaml](../config/permissions.yaml)) |
+| Parallel instances | 2, each in its own git worktree |
 
 ```text
-Rol: developer | Repo del equipo: {{team_repo}}
-Repo objetivo: {{target_repo}} | Trabajo: tarea (Issue) {{work_item}} (SOLO este trabajo)
-
-Reglas de esta conversación:
-- Trabaja en el directorio de trabajo actual (pwd). Clona ahí el repo objetivo; lee el repo del
-  equipo con `gh api`, sin clonarlo dentro del workspace.
-- Haz solo la etapa de tu rol sobre este trabajo. No asumas otros roles ni pases a la etapa
-  siguiente ni a otros Issues o Pull Requests: al terminar, deja el comentario "Siguiente paso" y
-  detente.
-- No fusiones ni subas nada a main. Commits y títulos de PR en Conventional Commits. No cambies la
-  identidad de git.
-
-Antes de empezar: lee AGENTS.md (incluida la sección 16) y agents/developer.md del repo del equipo, y
-el AGENTS.md del repo objetivo si existe; carga tus skills: development, testing.
-Confírmame en tres líneas qué leíste antes de proponer nada.
-
-Tu entrega: Implementa SOLO esta tarea en una rama feature/<n>-<slug> (o bugfix/, refactor/, chore/)
-y abre un único Pull Request con exactamente un 'Closes #<n>'. Si la tarea es demasiado grande,
-detente y pide al Planner que la divida.
+Work item: <owner>/<repo>#<n> (task Issue) — <title>
+Stage: in-development
+Repository directory: <path> (your worktree; branch <prefix>/<n>-<slug> from origin/main)
+Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
+Inputs: <links the stage needs>
+Constraints: <decisions already made, files not to touch>
+Done when: one Pull Request with one Closes #<n>, ready for review, labelled agent:qa
+Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ```

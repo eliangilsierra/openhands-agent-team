@@ -17,8 +17,14 @@ with the architecture, free of secrets, and easy to review — without bypassing
 
 Do not use this Skill for tasks that are not `ai-ready`; ask the Planner instead.
 
-One conversation implements **one** task Issue. Do not continue with another task, with QA or with
-review in the same conversation, even when the remaining tasks look small (AGENTS.md section 16).
+One subagent implements **one** task Issue. Do not continue with another task, with QA or with
+review, even when the remaining tasks look small (AGENTS.md section 16). As a subagent you work in
+your own git worktree, so another developer may be working on a different task at the same time.
+
+**Never lose work.** Keep `.agent-state/items/<n>.md` (the checkpoint) current after every milestone.
+Push after the first meaningful commit and open the Pull Request as a **draft** right away, then keep
+pushing as you go: if you are stopped, another developer continues from your branch and checkpoint.
+To bring in changes from `main`, merge `origin/main` into your branch; do not rebase or force-push.
 
 ## Inputs
 
@@ -90,7 +96,7 @@ Issue → Understand requirements → Inspect repository → Inspect architectur
     Conventional Commits form (`feat(auth): reject login after 5 failed attempts (#122)`), with
     exactly one `Closes #<issue>`, the exact validation commands and their results, and any
     interpretation you made. When CI is green (or failures are proven unrelated), mark it ready, add
-    label `agent:qa`, post the "Next step" comment and **stop**. Do not merge.
+    label `agent:qa`, update your checkpoint and **stop** with the result contract. Do not merge.
 
 **Handling feedback.** For each QA `FAIL` or review finding: reproduce it, fix it on the same
 branch in a new commit, and reply in the thread with the commit SHA — or dispute it with

@@ -18,10 +18,10 @@ This project is worked on by the agent team defined in
 `gh api` (do not clone it into your workspace). The essentials, repeated here because they are the
 rules most often broken:
 
-- **One stage of one work item per conversation.** Do your role's stage, post the "Next step"
-  comment and stop. Never take another role or continue with the next stage.
-- **Never review your own work.** QA, Code Review and Security Review are separate conversations and
-  none of them is skipped.
+- **One stage of one work item per subagent.** Do your role's stage, update your checkpoint and
+  report with the result contract. Never take another role or continue with the next stage.
+- **Never review your own work.** QA, Code Review and Security Review are separate subagents and
+  none of them is skipped; after QA passes, the two reviews run in parallel.
 - **Work in the conversation's current directory** (the workspace the OpenHands interface shows).
   Clone this repository there.
 - **One task Issue = one branch = one Pull Request.** Branch `<feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>`;
@@ -31,7 +31,8 @@ rules most often broken:
   `test`, `build`, `ci`, `chore` or `revert`.
 - **Never run `git merge` into `main`, push to `main`, merge or approve a Pull Request.** A human
   merges on GitHub with squash.
-- **QA reports and reviews are Pull Request comments and reviews**, never files in the repository.
+- **QA reports and reviews are Pull Request comments and reviews**, never files in the repository. A
+  `FAIL` or `CHANGES REQUESTED` verdict adds the `changes-requested` label, which blocks the merge.
 - Do not change the configured git identity. Never commit secrets.
 
 ## Roles and skills
@@ -48,5 +49,4 @@ rules most often broken:
 | security-reviewer | security-review |
 | orchestrator | orchestration |
 
-Your role is given by the first line of the activation message (`Rol: <id>`). Use only the skills of
-your row.
+The coordinator gives your role and work item in the brief. Use only the skills of your row.

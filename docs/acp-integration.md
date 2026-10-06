@@ -30,10 +30,10 @@ sequenceDiagram
     participant A as Claude Code (ACP server)
     participant M as Claude model
     participant G as GitHub
-    H->>C: Start conversation with profile "developer" + activation prompt
+    H->>C: Start conversation with profile "team" + "Build: <idea>"
     C->>S: Create conversation (ACP profile)
     S->>A: Spawn ACP subprocess, inject selected secrets as env
-    S->>A: Prompt (activation prompt + context)
+    S->>A: Prompt (message + context); the coordinator delegates to subagents
     A->>M: Reasoning and tool calls
     A->>A: Edit files, run tests in sandbox
     A->>G: git push, open PR (gh / API with GITHUB_TOKEN)
@@ -57,19 +57,16 @@ context window and authentication; Agent Canvas renders the conversation.
 
 ## 3. Which profiles use ACP
 
-| Profile | Backend | Reason |
-| --- | --- | --- |
-| `architect` | ACP · Claude Code | Whole-repository analysis, trade-off reasoning, ADR writing |
-| `developer` | ACP · Claude Code | Multi-file implementation, test-driven iteration |
-| `code-reviewer` | ACP · Claude Code | Semantic review across diff, callers, tests and design |
+Since [ADR-0002](decisions/ADR-0002-single-session-subagent-team.md) there is one profile, `team`, of
+type ACP (Claude Code). Its main session is the coordinator and every role is a Claude Code subagent
+inside that conversation, with its own model (`haiku`, `sonnet` or `opus`), tools and skills
+([docs/subagents.md](subagents.md)).
 
 ## 4. Which profiles do not
 
-Product Manager, Researcher, Planner, QA Engineer, Security Reviewer and Orchestrator run on the
-built-in OpenHands agent with an LLM profile. They stay **model-agnostic**: their behaviour comes
-from role files and Skills, so the model can be changed per profile for cost or quality without
-changing this repository. A role moves to ACP only with a concrete reason recorded in an ADR (for
-example, if security review quality requires Claude Code's whole-repository analysis).
+None of the team's roles uses an OpenHands-type profile any more. Roles stay model-agnostic in their
+role files and skills; the model of each subagent is configuration in `config/agents.yaml` and can be
+changed without editing the roles.
 
 ## 5. Runtime configuration
 
@@ -88,7 +85,7 @@ subprocess environment (*Official*: when the agent server supports `profile_secr
 
 *Convention:* create three ACP profiles named `architect`, `developer` and `code-reviewer` with the
 same ACP settings; they differ in their secret scope (all three: `GITHUB_TOKEN`, plus
-`ANTHROPIC_API_KEY` if used) and in the activation prompt used to start them.
+`ANTHROPIC_API_KEY` if used). Since ADR-0002 a single profile, `team`, replaces them.
 
 ## 6. Authentication
 
@@ -122,7 +119,7 @@ Choose one path deliberately and document the choice in your runtime notes:
 
 - Never commit `~/.claude/`, `.credentials.json`, API keys or exported settings.
 - Provide credentials only via OpenHands secrets (*Official*: exported as environment variables).
-- Do not pass secrets in activation prompts or Issue text; agents must never echo them.
+- Do not pass secrets in messages, briefs or Issue text; agents must never echo them.
 - Give ACP profiles only the secrets they need (secret scope "Selected").
 - `CLAUDE.md` and Claude Code project settings committed to a target repository must contain
   instructions only, never credentials.
@@ -133,7 +130,7 @@ Choose one path deliberately and document the choice in your runtime notes:
 | --- | --- |
 | Which roles use ACP and why (this document, [config/agents.yaml](../config/agents.yaml), ADR-0001) | The three ACP Agent Profiles and their settings |
 | Role behaviour (role files, Skills, AGENTS.md) | Claude Code authentication (login or API key secret) |
-| Activation prompts | Claude Code MCP configuration, if used |
+| Subagent definitions and hooks (templates/runtime/) | Their installed copy in `~/.claude`, and Claude Code MCP configuration, if used |
 | Permission specification | Secret scope per profile |
 
 ## 10. Skills and AGENTS.md for ACP profiles
@@ -151,7 +148,7 @@ Mitigation (*Convention*), robust regardless of version:
 2. Optionally install the same Skills for Claude Code in its own skills directory
    (`.claude/skills/<name>/SKILL.md` in the target repository, or the user-level Claude Code skills
    directory in the runtime). The `SKILL.md` format of this repository is compatible.
-3. The activation prompts of ACP roles instruct the agent to read its Skill file from this
+3. The subagent definitions preload their Skills with `skills:` and tell the agent to read its Skill file from this
    repository if the Skill is not visible in the session.
 
 ## 11. Tools and MCP for ACP profiles

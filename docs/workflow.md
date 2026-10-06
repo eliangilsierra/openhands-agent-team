@@ -23,14 +23,17 @@ flowchart TD
     pl -->|task Issues labeled ai-ready| dev[Developer<br/>in-development]
     dev -->|Pull Request| qa[QA Engineer<br/>qa]
     qa -->|PASS| cr[Code Reviewer<br/>code-review]
-    cr -->|NO BLOCKING FINDINGS| sr[Security Reviewer<br/>security-review]
-    sr -->|NO BLOCKING FINDINGS| ha{{Human approval<br/>awaiting-human-approval}}
+    qa -->|PASS, in parallel| sr[Security Reviewer<br/>security-review]
+    cr -->|NO BLOCKING FINDINGS| ha{{Human approval<br/>awaiting-human-approval}}
+    sr -->|NO BLOCKING FINDINGS| ha
     ha -->|approve and merge| merged([Merged])
 ```
 
 Research and architecture are **conditional** stages; their skip rules are in
 `config/workflow.yaml` (`skip_when`). QA, Code Review, Security Review and human approval are
-**never** skipped for a Pull Request.
+**never** skipped for a Pull Request. After QA `PASS`, Code Review and Security Review run in
+parallel. All stages run as subagents of one coordinator session
+([docs/subagents.md](subagents.md)); the team stops only for ADR acceptance and merges, per item.
 
 ## 2. Feedback loops
 
@@ -39,10 +42,11 @@ flowchart TD
     dev[Developer] --> qa[QA Engineer]
     qa -->|FAIL| dev
     qa -->|PASS| cr[Code Reviewer]
+    qa -->|PASS| sr[Security Reviewer]
     cr -->|CHANGES REQUESTED| dev
-    cr -->|NO BLOCKING FINDINGS| sr[Security Reviewer]
     sr -->|CHANGES REQUESTED| dev
-    sr -->|NO BLOCKING FINDINGS| ha{{Human approval}}
+    cr -->|NO BLOCKING FINDINGS| ha{{Human approval}}
+    sr -->|NO BLOCKING FINDINGS| ha
     ha -->|changes requested| dev
     ha -->|approved| merged([Merge by human])
 ```
@@ -133,22 +137,18 @@ came from once the blocker is resolved; any state can be `cancelled` by a human.
 
 ## 5. Hand-off protocol
 
-At the end of its stage, the owning agent:
+At the end of its stage, the owning subagent:
 
 1. Persists its artifact in the location defined in [config/agents.yaml](../config/agents.yaml).
-2. Replaces its own `agent:*` label with the next owner's label (exactly one `agent:*` label at a time).
-3. Posts the **Next step** comment and stops: the conversation does not continue with the next stage,
-   because the next stage is a different conversation (AGENTS.md section 16).
+2. Replaces its own `agent:*` label with the next owner's label (exactly one `agent:*` label at a time,
+   except `agent:reviewer` with `agent:security` during parallel review), and sets or removes
+   `changes-requested` according to its verdict.
+3. Updates its checkpoint (`.agent-state/items/<n>.md` and the "Checkpoint" comment) and returns the
+   result contract to the coordinator.
 
-```markdown
-**Next step** · <Agent> · state: <current> → <next>
-Artifact: <link to what this stage produced>   Outcome: <verdict or summary>
-Next stage: <stage> — profile `<profile name>` — role `<id>` — work item #<n>
-Activation message: the standard message from agents/<id>.md with the work item filled in
-Notes: <anything the next owner must know>
-```
-
-The Orchestrator verifies hand-offs, corrects inconsistent labels and escalates stalls.
+The coordinator verifies the artifact on GitHub, updates the team board (`.agent-state/board.md` and the
+"Team board" comment on the feature Issue) and delegates the next stage
+([skills/orchestration](../skills/orchestration/SKILL.md)).
 
 ## 6. Human approval points
 

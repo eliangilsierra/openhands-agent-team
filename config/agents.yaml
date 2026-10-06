@@ -3,9 +3,21 @@
 # Canonical, human-readable specification of the AI engineering team.
 #
 # IMPORTANT: this file is a REPOSITORY CONVENTION. OpenHands does not read it.
-# OpenHands Agent Profiles are created manually in the OpenHands runtime
-# (Agent Canvas: Settings > Agent) so that they match this specification.
-# See docs/openhands-integration.md for the mapping.
+# The team runs in ONE OpenHands conversation with the ACP Agent Profile "team"
+# (Claude Code). The orchestrator is that conversation's main session (the
+# coordinator); every other agent is a Claude Code subagent generated from this
+# file into templates/runtime/claude/agents/<id>.md and installed in ~/.claude/agents/.
+# See ADR-0002 and docs/subagents.md.
+#
+# "runtime" fields (checked against the subagent files by the validator):
+#   model               haiku | sonnet | opus (Claude Code aliases)
+#   effort              low | medium | high | xhigh | max
+#   max_turns           maxTurns of the subagent (0 = not limited: the coordinator)
+#   time_budget_minutes wall-clock budget per work item before the coordinator escalates
+#   escalation          models to retry with, in order, when the budget or turns run out
+#   restriction_level   R0..R4, see config/permissions.yaml
+#   max_parallel        how many instances of this subagent may run at the same time
+#   isolation           worktree = own git worktree per instance; none otherwise
 #
 # Consistency rules (checked by scripts/validate_repository.py):
 #   - every agent has a profile file under agents/
@@ -26,24 +38,33 @@ schema_version: 1
 team: openhands-agent-team
 
 execution_backends:
-  openhands:
+  claude-code-coordinator:
     description: >-
-      Built-in OpenHands agent. The model is selected through an OpenHands LLM
-      profile, so the role definition stays model-agnostic.
-    configured_in: "OpenHands runtime - Agent Profile of type OpenHands, linked to an LLM profile"
-  acp-claude-code:
+      Main session of the single OpenHands ACP Agent Profile "team" (Claude Code).
+      Reads GitHub and the team board, schedules work and delegates to subagents.
+    configured_in: "OpenHands runtime - ACP Agent Profile 'team' + ~/.claude/CLAUDE.md"
+  claude-code-subagent:
     description: >-
-      OpenHands Agent Profile of type ACP that runs Claude Code through the
-      Agent Client Protocol. Claude Code manages its own model, tools and
-      authentication. Used for roles that need deep, multi-file reasoning.
-    configured_in: "OpenHands runtime - Agent Profile of type ACP (Claude Code)"
+      Claude Code subagent with its own context, system prompt, model, tools and
+      skills, spawned by the coordinator inside the same conversation and workspace.
+    configured_in: "~/.claude/agents/<id>.md, generated in templates/runtime/claude/agents/"
 
 agents:
   product-manager:
     name: Product Manager
     profile_file: agents/product-manager.md
     label: "agent:product"
-    execution_backend: openhands
+    execution_backend: claude-code-subagent
+    runtime:
+      model: haiku
+      effort: medium
+      max_turns: 30
+      time_budget_minutes: 10
+      escalation: [sonnet]
+      restriction_level: R2
+      max_parallel: 1
+      isolation: none
+      memory: user
     mission: Transform ideas and business problems into clear, testable software requirements.
     responsibilities:
       - Understand the problem and identify the users affected
@@ -65,7 +86,17 @@ agents:
     name: Researcher
     profile_file: agents/researcher.md
     label: "agent:research"
-    execution_backend: openhands
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: medium
+      max_turns: 40
+      time_budget_minutes: 20
+      escalation: [opus]
+      restriction_level: R1
+      max_parallel: 3
+      isolation: none
+      memory: user
     mission: Provide evidence-based technical and product research to support engineering decisions.
     responsibilities:
       - Research technologies, libraries, frameworks and APIs
@@ -86,7 +117,17 @@ agents:
     name: Architect
     profile_file: agents/architect.md
     label: "agent:architect"
-    execution_backend: acp-claude-code
+    execution_backend: claude-code-subagent
+    runtime:
+      model: opus
+      effort: high
+      max_turns: 60
+      time_budget_minutes: 30
+      escalation: []
+      restriction_level: R3
+      max_parallel: 1
+      isolation: none
+      memory: user
     mission: Design simple, maintainable, secure and scalable system architectures.
     responsibilities:
       - Analyze requirements, constraints and the existing system
@@ -110,7 +151,17 @@ agents:
     name: Planner
     profile_file: agents/planner.md
     label: "agent:planner"
-    execution_backend: openhands
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: high
+      max_turns: 40
+      time_budget_minutes: 15
+      escalation: [opus]
+      restriction_level: R2
+      max_parallel: 1
+      isolation: none
+      memory: user
     mission: Transform requirements and architecture into small, executable engineering tasks.
     responsibilities:
       - Analyze requirements and architecture
@@ -134,7 +185,17 @@ agents:
     name: Developer
     profile_file: agents/developer.md
     label: "agent:developer"
-    execution_backend: acp-claude-code
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: medium
+      max_turns: 120
+      time_budget_minutes: 45
+      escalation: [opus]
+      restriction_level: R4
+      max_parallel: 2
+      isolation: worktree
+      memory: user
     mission: Implement approved GitHub Issues while respecting architecture, security and testing requirements.
     responsibilities:
       - Understand the Issue, the repository, the architecture and the ADRs
@@ -156,7 +217,17 @@ agents:
     name: QA Engineer
     profile_file: agents/qa-engineer.md
     label: "agent:qa"
-    execution_backend: openhands
+    execution_backend: claude-code-subagent
+    runtime:
+      model: haiku
+      effort: medium
+      max_turns: 50
+      time_budget_minutes: 20
+      escalation: [sonnet]
+      restriction_level: R1
+      max_parallel: 2
+      isolation: none
+      memory: user
     mission: Validate that the implementation satisfies requirements and does not introduce regressions.
     responsibilities:
       - Validate every acceptance criterion
@@ -177,7 +248,17 @@ agents:
     name: Code Reviewer
     profile_file: agents/code-reviewer.md
     label: "agent:reviewer"
-    execution_backend: acp-claude-code
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: high
+      max_turns: 50
+      time_budget_minutes: 20
+      escalation: [opus]
+      restriction_level: R1
+      max_parallel: 2
+      isolation: none
+      memory: user
     mission: Perform semantic review of Pull Requests.
     responsibilities:
       - Review requirements compliance, correctness and architecture
@@ -197,7 +278,17 @@ agents:
     name: Security Reviewer
     profile_file: agents/security-reviewer.md
     label: "agent:security"
-    execution_backend: openhands
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: high
+      max_turns: 50
+      time_budget_minutes: 20
+      escalation: [opus]
+      restriction_level: R1
+      max_parallel: 2
+      isolation: none
+      memory: user
     mission: Identify security weaknesses before changes are merged.
     responsibilities:
       - Review authentication, authorization and secrets handling
@@ -218,7 +309,17 @@ agents:
     name: Orchestrator
     profile_file: agents/orchestrator.md
     label: null   # the Orchestrator coordinates; it never owns a work item
-    execution_backend: openhands
+    execution_backend: claude-code-coordinator
+    runtime:
+      model: sonnet
+      effort: medium
+      max_turns: 0
+      time_budget_minutes: 0
+      escalation: []
+      restriction_level: R0
+      max_parallel: 1
+      isolation: none
+      memory: user
     mission: Coordinate the other agents and maintain workflow state in GitHub.
     responsibilities:
       - Understand the request and determine which agents are required

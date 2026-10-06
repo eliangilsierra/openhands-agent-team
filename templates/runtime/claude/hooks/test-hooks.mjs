@@ -1,0 +1,157 @@
+// Tests for the team's Claude Code hooks and git hooks. Run: node templates/runtime/claude/hooks/test-hooks.mjs
+// Needs Node.js 20+, git and sh. Creates temporary repositories and never touches the real ones.
+import { spawnSync, execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const githooks = path.join(here, '..', 'githooks');
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'team-hooks-'));
+const home = path.join(tmp, 'home');
+fs.mkdirSync(home, { recursive: true });
+
+let failures = 0;
+const check = (name, ok, detail = '') => {
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : `  ${detail}`}`);
+  if (!ok) failures += 1;
+};
+
+const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+function repo(name, branch) {
+  const dir = path.join(tmp, name);
+  fs.mkdirSync(dir, { recursive: true });
+  git(dir, 'init', '-q', '-b', 'main');
+  git(dir, 'config', 'user.email', 'test@example.org');
+  git(dir, 'config', 'user.name', 'Test');
+  fs.writeFileSync(path.join(dir, 'README.md'), 'test\n');
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-q', '-m', 'chore: initial commit');
+  if (branch !== 'main') git(dir, 'switch', '-q', '-c', branch);
+  return dir;
+}
+
+function hook(name, input, cwd) {
+  const r = spawnSync(process.execPath, [path.join(here, name)], {
+    input: JSON.stringify({ cwd, ...input }),
+    encoding: 'utf8',
+    env: { ...process.env, HOME: home, CLAUDE_PROJECT_DIR: cwd },
+  });
+  return { code: r.status, out: r.stdout, err: r.stderr };
+}
+
+const onFeature = repo('feature-repo', 'feature/12-rest-timer');
+const onMain = repo('main-repo', 'main');
+const onDocs = repo('docs-repo', 'docs/3-adr');
+
+// ---------------------------------------------------------------- guard-bash
+const bash = (cmd, agent, cwd = onFeature) => hook('guard-bash.mjs', { tool_name: 'Bash', tool_input: { command: cmd }, ...(agent ? { agent_type: agent } : {}) }, cwd).code;
+const cases = [
+  ['coordinator cannot merge a PR', 'gh pr merge 12 --squash', undefined, 2],
+  ['coordinator cannot commit', 'git commit -m "feat: x"', undefined, 2],
+  ['coordinator can read GitHub', 'gh issue list --label ai-ready', undefined, 0],
+  ['developer pushes its feature branch', 'git push -u origin feature/12-rest-timer', 'developer', 0],
+  ['developer pushes current branch without refspec', 'git push', 'developer', 0],
+  ['developer cannot push main', 'git push origin main', 'developer', 2],
+  ['developer cannot push HEAD:main', 'git push origin HEAD:main', 'developer', 2],
+  ['developer cannot force push', 'git push --force origin feature/12-rest-timer', 'developer', 2],
+  ['developer cannot push a badly named branch', 'git push origin task/5-11-ui', 'developer', 2],
+  ['developer can merge main into its branch', 'git fetch origin && git merge origin/main', 'developer', 0],
+  ['developer cannot change identity', 'git config user.email bot@example.org', 'developer', 2],
+  ['developer cannot skip hooks', 'git commit --no-verify -m "feat: x"', 'developer', 2],
+  ['developer can run tests', 'npm ci && npm test -- --run', 'developer', 0],
+  ['architect pushes docs branch', 'git push origin docs/3-adr', 'architect', 0],
+  ['architect cannot push feature branch', 'git push origin feature/12-x', 'architect', 2],
+  ['qa cannot commit', 'git add . && git commit -m "test: x"', 'qa-engineer', 2],
+  ['qa can check out a PR and test', 'gh pr checkout 21 && npm test', 'qa-engineer', 0],
+  ['reviewer cannot approve', 'gh pr review 21 --approve', 'code-reviewer', 2],
+  ['reviewer can comment a review', 'gh pr review 21 --comment --body-file review.md', 'code-reviewer', 0],
+  ['nobody merges through the API', 'gh api -X PUT repos/o/r/pulls/21/merge', 'developer', 2],
+  ['nobody edits branch protection', 'gh api -X DELETE repos/o/r/branches/main/protection', 'developer', 2],
+  ['nobody deletes the home directory', 'rm -rf ~', 'developer', 2],
+  ['unknown built-in subagent is read-only', 'git commit -m "feat: x"', 'Explore', 2],
+];
+for (const [name, cmd, agent, expected] of cases) {
+  const code = bash(cmd, agent);
+  check(`guard-bash: ${name}`, code === expected, `exit ${code}, expected ${expected}`);
+}
+check('guard-bash: developer cannot merge while on main', bash('git merge feature/12-x', 'developer', onMain) === 2);
+check('guard-bash: architect plain push on docs branch', bash('git push', 'architect', onDocs) === 0);
+
+// ---------------------------------------------------------------- guard-files
+const write = (file, agent, cwd = onFeature) => hook('guard-files.mjs', { tool_name: 'Write', tool_input: { file_path: file }, ...(agent ? { agent_type: agent } : {}) }, cwd).code;
+const memory = path.join(home, '.claude', 'agent-memory', 'qa-engineer', 'MEMORY.md');
+const fileCases = [
+  ['read-only agent cannot write source', 'src/app.ts', 'qa-engineer', 2],
+  ['read-only agent writes its memory', memory, 'qa-engineer', 0],
+  ['read-only agent writes a checkpoint', '.agent-state/items/12.md', 'code-reviewer', 0],
+  ['coordinator writes the board', '.agent-state/board.md', undefined, 0],
+  ['coordinator cannot write source', 'src/app.ts', undefined, 2],
+  ['architect writes an ADR', 'docs/decisions/ADR-0003-x.md', 'architect', 0],
+  ['architect cannot write source', 'src/app.ts', 'architect', 2],
+  ['developer writes source', 'src/app.ts', 'developer', 0],
+  ['developer cannot write workflows', '.github/workflows/ci.yml', 'developer', 2],
+  ['developer cannot write .env', '.env', 'developer', 2],
+  ['developer may write .env.example', '.env.example', 'developer', 0],
+  ['developer cannot write a private key', 'deploy/id_rsa', 'developer', 2],
+];
+for (const [name, file, agent, expected] of fileCases) {
+  const code = write(file, agent);
+  check(`guard-files: ${name}`, code === expected, `exit ${code}, expected ${expected}`);
+}
+
+// ---------------------------------------------------------------- state hooks
+const state = path.join(onFeature, '.agent-state');
+hook('heartbeat.mjs', { tool_name: 'Bash', agent_id: 'dev-1', agent_type: 'developer' }, onFeature);
+check('heartbeat: writes the agent heartbeat', fs.existsSync(path.join(state, 'heartbeat', 'dev-1.json')));
+
+fs.writeFileSync(path.join(state, 'board.md'), '| #12 | in-development | developer |\n');
+const start = hook('session-start.mjs', { source: 'compact' }, onFeature);
+const ctx = JSON.parse(start.out || '{}')?.hookSpecificOutput?.additionalContext || '';
+check('session-start: re-injects the board', ctx.includes('#12 | in-development'));
+check('session-start: excludes .agent-state from git', fs.readFileSync(path.join(onFeature, '.git', 'info', 'exclude'), 'utf8').includes('.agent-state/'));
+
+hook('pre-compact.mjs', { trigger: 'auto' }, onFeature);
+check('pre-compact: snapshots the board', fs.existsSync(path.join(state, 'board.pre-compact.md')));
+
+hook('stop-failure.mjs', { error: 'rate_limit' }, onFeature);
+check('stop-failure: leaves a pause marker', fs.existsSync(path.join(state, 'paused.json')));
+
+const stop = (message, id) => hook('subagent-stop.mjs', { agent_type: 'developer', agent_id: id, last_assistant_message: message }, onFeature);
+const first = stop('I finished the task.', 'dev-2');
+check('subagent-stop: asks for the contract once', first.code === 0 && JSON.parse(first.out || '{}').decision === 'block');
+const second = stop('I finished the task.', 'dev-2');
+check('subagent-stop: does not loop', second.code === 0 && second.out === '');
+const good = stop('STATUS: DONE\nARTIFACTS: PR #30\nEVIDENCE: npm test ok\nNEXT: qa\nCHECKPOINT: .agent-state/items/12.md', 'dev-3');
+check('subagent-stop: accepts a complete contract', good.code === 0 && good.out === '');
+check('subagent-stop: ignores built-in subagents', hook('subagent-stop.mjs', { agent_type: 'Explore', last_assistant_message: 'x' }, onFeature).out === '');
+
+// ---------------------------------------------------------------- git hooks
+const commitMsg = (text) => {
+  const file = path.join(tmp, 'MSG');
+  fs.writeFileSync(file, text);
+  return spawnSync('sh', [path.join(githooks, 'commit-msg'), file], { encoding: 'utf8' }).status;
+};
+check('commit-msg: accepts a conventional subject', commitMsg('feat(timer): add rest countdown (#12)\n') === 0);
+check('commit-msg: rejects a free-form subject', commitMsg('Build UI components (#5-11)\n') !== 0);
+check('commit-msg: rejects an uppercase description', commitMsg('feat: Add timer\n') !== 0);
+check('commit-msg: rejects Co-Authored-By', commitMsg('feat: add timer\n\nCo-Authored-By: Bot <b@example.org>\n') !== 0);
+check('commit-msg: allows merging main into a branch', commitMsg("Merge remote-tracking branch 'origin/main' into feature/12-x\n") === 0);
+
+const zero = '0'.repeat(40);
+const head = git(onFeature, 'rev-parse', 'HEAD');
+const prePush = (line, cwd = onFeature) => spawnSync('sh', [path.join(githooks, 'pre-push'), 'origin', 'url'], { cwd, input: `${line}\n`, encoding: 'utf8' }).status;
+check('pre-push: allows a feature branch', prePush(`refs/heads/feature/12-rest-timer ${head} refs/heads/feature/12-rest-timer ${zero}`) === 0);
+check('pre-push: blocks main', prePush(`refs/heads/main ${head} refs/heads/main ${zero}`) !== 0);
+check('pre-push: blocks a badly named branch', prePush(`refs/heads/x ${head} refs/heads/task/5-11-ui ${zero}`) !== 0);
+const token = ['gh', 'p_', 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0'].join('');
+fs.writeFileSync(path.join(onFeature, 'config.ts'), `export const t = "${token}";\n`);
+git(onFeature, 'add', 'config.ts');
+git(onFeature, '-c', 'core.hooksPath=/dev/null', 'commit', '-q', '-m', 'feat: add config');
+const leaked = git(onFeature, 'rev-parse', 'HEAD');
+check('pre-push: blocks a pushed secret', prePush(`refs/heads/feature/12-rest-timer ${leaked} refs/heads/feature/12-rest-timer ${head}`) !== 0);
+
+fs.rmSync(tmp, { recursive: true, force: true });
+console.log(failures ? `\n${failures} failure(s)` : '\nAll hook tests passed.');
+process.exit(failures ? 1 : 0);

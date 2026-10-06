@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Perform a practical application security review of a Pull Request - attack surface mapping, then authentication, authorization, secrets, input validation, injection, XSS, CSRF, SSRF, IDOR, path traversal, file uploads, dependencies, sensitive data, logging, encryption, CORS, security headers, containers, CI/CD, infrastructure, privilege escalation and insecure defaults - and report actionable findings by severity. Use after code review, before human approval.
+description: Perform a practical application security review of a Pull Request - attack surface mapping, then authentication, authorization, secrets, input validation, injection, XSS, CSRF, SSRF, IDOR, path traversal, file uploads, dependencies, sensitive data, logging, encryption, CORS, security headers, containers, CI/CD, infrastructure, privilege escalation and insecure defaults - and report actionable findings by severity. Use after QA has passed, in parallel with the code review, before human approval.
 ---
 
 # Security Review
@@ -44,8 +44,12 @@ reviewed scope with the methods used" — never "the system is secure".
 7. **Decide the outcome** — `CHANGES REQUESTED` if any `BLOCKER`/`HIGH` is open; otherwise
    `NO BLOCKING FINDINGS`; `BLOCKED` if the review could not be completed.
 8. **Submit** one review using [templates/security-review.md](../../templates/security-review.md)
-   (`REQUEST_CHANGES` or `COMMENT`). Move the label: `needs-human` (awaiting human approval) or
-   `agent:developer`.
+   (`REQUEST_CHANGES` or `COMMENT`). You run in parallel with the code reviewer; the coordinator moves
+   the labels once both outcomes are in.
+   When the agents use the same GitHub identity as the Pull Request author, GitHub does not accept
+   `REQUEST_CHANGES` on your own Pull Request: submit `COMMENT` with the outcome in the body and, for
+   `CHANGES REQUESTED`, add the label `changes-requested` (it makes the Pull Request check fail).
+   Never submit `APPROVE`.
 
 ### Review areas
 

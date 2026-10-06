@@ -75,6 +75,23 @@ REQUIRED_FILES = [
     "templates/target-repo/CLAUDE.md",
     "templates/target-repo/.github/workflows/pr-conventions.yml",
     "templates/runtime/claude-user-memory.md",
+    "templates/runtime/README.md",
+    "templates/runtime/claude/settings.json",
+    "templates/runtime/claude/hooks/lib.mjs",
+    "templates/runtime/claude/hooks/guard-bash.mjs",
+    "templates/runtime/claude/hooks/guard-files.mjs",
+    "templates/runtime/claude/hooks/heartbeat.mjs",
+    "templates/runtime/claude/hooks/session-start.mjs",
+    "templates/runtime/claude/hooks/pre-compact.mjs",
+    "templates/runtime/claude/hooks/subagent-stop.mjs",
+    "templates/runtime/claude/hooks/stop-failure.mjs",
+    "templates/runtime/claude/hooks/test-hooks.mjs",
+    "templates/runtime/claude/githooks/commit-msg",
+    "templates/runtime/claude/githooks/pre-push",
+    "templates/target-repo/.github/workflows/ci.yml",
+    "docs/subagents.md",
+    "docs/decisions/ADR-0002-single-session-subagent-team.md",
+    "scripts/test_workflows.mjs",
     ".github/ISSUE_TEMPLATE/feature.yml",
     ".github/ISSUE_TEMPLATE/bug.yml",
     ".github/ISSUE_TEMPLATE/research.yml",
@@ -95,7 +112,7 @@ REQUIRED_DIRS = ["agents", "skills", "docs", "docs/decisions", "templates",
 AGENT_SECTIONS = [
     "Role", "Mission", "Responsibilities", "Inputs", "Outputs", "Required skills",
     "Allowed tools", "Forbidden actions", "GitHub permissions", "Expected behavior",
-    "Definition of Done", "Escalation rules", "Activation prompt",
+    "Definition of Done", "Escalation rules", "Delegation brief",
 ]
 
 SKILL_SECTIONS = [
@@ -147,6 +164,7 @@ PERMISSION_FIELDS = {
     "delegation": {True, False},
     "secrets": None,
     "enforcement": None,
+    "restriction_level": {"R0", "R1", "R2", "R3", "R4"},
 }
 
 MERMAID_TYPES = (
@@ -180,9 +198,15 @@ SOURCE_EXTENSIONS = {
     ".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".go", ".java", ".rb", ".php", ".cs",
     ".rs", ".c", ".h", ".cpp", ".hpp", ".kt", ".swift", ".scala", ".sh", ".ps1", ".vue", ".svelte",
 }
-ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py"}
+ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py", "scripts/test_workflows.mjs"}
+# Operational runtime files (ADR-0002): Claude Code hooks installed in ~/.claude/hooks of the runtime.
+ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/",)
 
-TEXT_EXTENSIONS = {".md", ".yml", ".yaml", ".json", ".txt", ".py", ""}
+MODELS = {"haiku", "sonnet", "opus"}
+EFFORTS = {"low", "medium", "high", "xhigh", "max"}
+LEVELS_ALLOWED = {"R0", "R1", "R2", "R3", "R4"}
+
+TEXT_EXTENSIONS = {".md", ".yml", ".yaml", ".json", ".txt", ".py", ".mjs", ""}
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
 
 
@@ -580,10 +604,9 @@ def check_config(report: Report, agents_cfg: dict, skills_cfg: dict, workflow: d
             report.error(f"{where}: only the developer may modify source code")
         if entry.get("labels") == "manage" and agent_id != "orchestrator":
             report.error(f"{where}: only the orchestrator may manage labels")
-        backend = agents.get(agent_id, {}).get("execution_backend")
-        uses_anthropic = "ANTHROPIC_API_KEY" in entry.get("secrets", [])
-        if uses_anthropic != (backend == "acp-claude-code"):
-            report.error(f"{where}: ANTHROPIC_API_KEY must be granted exactly to acp-claude-code agents")
+        level = (agents.get(agent_id, {}).get("runtime") or {}).get("restriction_level")
+        if entry.get("restriction_level") != level:
+            report.error(f"{where}: restriction_level must equal runtime.restriction_level in config/agents.yaml ({level})")
         web = "web" in agents.get(agent_id, {}).get("mcp", [])
         if web != bool(entry.get("web_access")):
             report.error(f"{where}: web_access must be true exactly when config/agents.yaml lists the web capability")
@@ -671,10 +694,12 @@ def check_conventions(report: Report) -> None:
         if path.name == "README.md":
             continue
         raw = read(path)
-        activation = raw[raw.index("## Activation prompt"):] if "## Activation prompt" in raw else ""
-        for needle in (f"Rol: {path.stem}", "SOLO este trabajo", "Siguiente paso", "Conventional Commits"):
-            if needle not in activation:
-                report.error(f"{rel(path)}: activation prompt must contain '{needle}'")
+        brief = raw[raw.index("## Delegation brief"):] if "## Delegation brief" in raw else ""
+        needles = ("Model", "Restriction level") if path.stem == "orchestrator" else (
+            "Work item:", "Checkpoint:", "Done when:", "result contract", "Restriction level")
+        for needle in needles:
+            if needle not in brief:
+                report.error(f"{rel(path)}: delegation brief must contain '{needle}'")
 
     ai = convention_lines(read(ROOT / ".github" / "workflows" / "ai-workflow.yml"))
     kit = convention_lines(read(ROOT / "templates" / "target-repo" / ".github" / "workflows" / "pr-conventions.yml"))
@@ -685,8 +710,75 @@ def check_conventions(report: Report) -> None:
     if sorted(types_line.split("'")[1].split("|") if "'" in types_line else []) != sorted(CONVENTIONAL_TYPES):
         report.error(f"ai-workflow.yml: commit types must be exactly {CONVENTIONAL_TYPES}")
 
-    if "Rol:" not in read(ROOT / "templates" / "runtime" / "claude-user-memory.md"):
-        report.error("templates/runtime/claude-user-memory.md: must explain the 'Rol:' line")
+    memory = read(ROOT / "templates" / "runtime" / "claude-user-memory.md")
+    for needle in ("coordinator", "orchestration", "Subagent"):
+        if needle not in memory:
+            report.error(f"templates/runtime/claude-user-memory.md: must mention '{needle}'")
+
+
+def frontmatter(path: Path) -> dict:
+    match = re.match(r"^---\n(.*?)\n---\n", read(path), re.DOTALL)
+    return (yaml.safe_load(match.group(1)) or {}) if match else {}
+
+
+def check_runtime(report: Report, agents_cfg: dict) -> None:
+    """Subagent definitions, hooks and settings agree with config/agents.yaml (ADR-0002)."""
+    agents = agents_cfg.get("agents", {})
+    runtime_dir = ROOT / "templates" / "runtime" / "claude"
+    lib = read(runtime_dir / "hooks" / "lib.mjs")
+    lib_levels = dict(re.findall(r"^\s*'?([a-z-]+)'?:\s*'(R[0-4])',", lib, re.MULTILINE))
+    coordinators = [a for a, c in agents.items() if c.get("execution_backend") == "claude-code-coordinator"]
+    if coordinators != ["orchestrator"]:
+        report.error(f"config/agents.yaml: exactly the orchestrator must be the coordinator, found {coordinators}")
+
+    for agent_id, cfg in agents.items():
+        where = f"config/agents.yaml:{agent_id}.runtime"
+        rt = cfg.get("runtime") or {}
+        if rt.get("model") not in MODELS:
+            report.error(f"{where}: model must be one of {sorted(MODELS)}")
+        if rt.get("effort") not in EFFORTS:
+            report.error(f"{where}: effort must be one of {sorted(EFFORTS)}")
+        if any(m not in MODELS for m in rt.get("escalation", [])):
+            report.error(f"{where}: escalation models must be in {sorted(MODELS)}")
+        if rt.get("restriction_level") not in LEVELS_ALLOWED:
+            report.error(f"{where}: restriction_level must be R0..R4")
+        if not isinstance(rt.get("max_parallel"), int) or rt["max_parallel"] < 1:
+            report.error(f"{where}: max_parallel must be a positive integer")
+        if agent_id == "orchestrator":
+            continue
+        if lib_levels.get(agent_id) != rt.get("restriction_level"):
+            report.error(f"templates/runtime/claude/hooks/lib.mjs: LEVELS['{agent_id}'] must be {rt.get('restriction_level')}")
+        path = runtime_dir / "agents" / f"{agent_id}.md"
+        if not path.is_file():
+            report.error(f"{rel(path)}: missing subagent definition")
+            continue
+        fm = frontmatter(path)
+        expected = {"name": agent_id, "model": rt.get("model"), "effort": rt.get("effort"),
+                    "maxTurns": rt.get("max_turns"), "skills": cfg.get("skills"), "memory": rt.get("memory")}
+        for key, value in expected.items():
+            if fm.get(key) != value:
+                report.error(f"{rel(path)}: {key} is {fm.get(key)!r}, config/agents.yaml says {value!r}")
+        if (fm.get("isolation") == "worktree") != (rt.get("isolation") == "worktree"):
+            report.error(f"{rel(path)}: isolation must match runtime.isolation in config/agents.yaml")
+        if "Agent" in str(fm.get("tools", "")).split(", "):
+            report.error(f"{rel(path)}: subagents must not spawn subagents (remove the Agent tool)")
+        if "STATUS:" not in read(path) or "CHECKPOINT:" not in read(path):
+            report.error(f"{rel(path)}: must define the result contract")
+    extra = {p.stem for p in (runtime_dir / "agents").glob("*.md")} - set(agents)
+    if extra:
+        report.error(f"templates/runtime/claude/agents: definitions without a team agent: {sorted(extra)}")
+
+    settings = json.loads(read(runtime_dir / "settings.json"))
+    commands = json.dumps(settings.get("hooks", {}))
+    for hook in sorted((runtime_dir / "hooks").glob("*.mjs")):
+        if hook.name in ("lib.mjs", "test-hooks.mjs"):
+            continue
+        if hook.name not in commands:
+            report.error(f"templates/runtime/claude/settings.json: hook {hook.name} is not registered")
+    if not settings.get("autoMemoryEnabled"):
+        report.error("templates/runtime/claude/settings.json: autoMemoryEnabled must be true (subagent memory)")
+    if settings.get("env", {}).get("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH") != "1":
+        report.error("templates/runtime/claude/settings.json: CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH must be '1'")
 
 
 def check_adrs(report: Report) -> None:
@@ -745,7 +837,8 @@ def check_hygiene(report: Report, files: list[Path]) -> None:
         name = rel(path)
         if FORBIDDEN_FILE_NAMES.search(name):
             report.error(f"{name}: secret-bearing file type must never be committed")
-        if path.suffix.lower() in SOURCE_EXTENSIONS and name not in ALLOWED_SOURCE_FILES:
+        if path.suffix.lower() in SOURCE_EXTENSIONS and name not in ALLOWED_SOURCE_FILES \
+                and not name.startswith(ALLOWED_SOURCE_PREFIXES):
             report.error(f"{name}: application source code is not allowed in this repository")
         if path.suffix.lower() not in TEXT_EXTENSIONS and path.name not in ("LICENSE", "CODEOWNERS",
                                                                            ".gitignore", ".gitattributes"):
@@ -806,6 +899,10 @@ def main() -> int:
     before = len(report.errors)
     check_plugin(report)
     report.section("Plugin manifest (plugin.json) and skill layout", before)
+
+    before = len(report.errors)
+    check_runtime(report, agents_cfg)
+    report.section("Runtime: subagents, hooks and settings match config/agents.yaml", before)
 
     before = len(report.errors)
     check_conventions(report)

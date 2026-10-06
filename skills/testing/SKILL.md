@@ -61,9 +61,10 @@ criteria say and whether it breaks anything that worked before.
    - `FAIL` if any check is `FAIL`;
    - else `BLOCKED` if any required check is `BLOCKED`;
    - else `PASS` if every acceptance criterion has at least one `PASS`.
-7. **Report and hand off.** Post the report on the Pull Request. `PASS` → label `agent:reviewer`.
-   `FAIL` → label `agent:developer`. `BLOCKED` → add `blocked` (and `needs-human` if a human must act),
-   keep `agent:qa`.
+7. **Report and hand off.** Post the report on the Pull Request. `PASS` → labels `agent:reviewer`
+   and `agent:security` (the two reviews run in parallel) and remove `changes-requested` if present.
+   `FAIL` → label `agent:developer` and add `changes-requested`. `BLOCKED` → add `blocked` (and
+   `needs-human` if a human must act), keep `agent:qa`.
 
 **Bug reproduction variant:** the single check is "the reported behaviour reproduces". Follow the
 reporter's steps on the version they used and on current `main`. Report `PASS` when the reported

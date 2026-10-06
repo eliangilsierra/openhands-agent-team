@@ -13,6 +13,13 @@ Two layers are always kept separate:
 
 Deterministic validation never depends on OpenHands being online.
 
+> **Since [ADR-0002](decisions/ADR-0002-single-session-subagent-team.md)** the agent-to-agent hand-offs
+> of phases 2 to 5 happen **inside one conversation**: the coordinator delegates every stage to
+> subagents and stops only for ADR acceptance and merges ([docs/subagents.md](subagents.md)). What
+> remains for automation is starting or resuming that conversation from GitHub events (for example
+> sending `continúa` after a merge). The phase descriptions below are kept for that purpose and for
+> history.
+
 ## Phase overview
 
 ```mermaid
@@ -34,7 +41,8 @@ flowchart LR
 ## Phase 1 — Manual execution (current)
 
 **What happens:** humans start each agent conversation in OpenHands with the right Agent Profile
-and activation prompt ([openhands-integration.md](openhands-integration.md#6-starting-work-phase-1)).
+and the role's message ([openhands-integration.md](openhands-integration.md#6-starting-work)). Since ADR-0002 a
+single message to the `team` profile replaces this.
 Agents persist artifacts and hand off labels; GitHub Actions validates deterministically.
 
 **Automated today (deterministic only):**
@@ -77,7 +85,7 @@ Reviewer
 deterministic readiness gate in `ai-workflow.yml` passes.
 
 **Action:** start an OpenHands conversation with the `developer` profile on the target repository,
-with the Developer activation prompt and the Issue number.
+with the Developer brief and the Issue number (since ADR-0002: send `continúa` to the `team` conversation).
 
 **Integration options** (choose one; verify against your installed version before building it):
 

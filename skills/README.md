@@ -51,7 +51,7 @@ OpenHands documents for `.agents/skills/<name>/SKILL.md`: `name` must equal the 
 use lowercase letters, digits and hyphens. The same format is understood by Claude Code skills.
 This keeps the Skills installable in both execution backends without conversion. Optional
 OpenHands activation fields (`triggers`, `paths`) are intentionally not used: Skills are loaded by
-role through the Agent Profile and activation prompt, not by keyword.
+role through the subagent definitions (`skills:` in templates/runtime/claude/agents/), not by keyword.
 
 ## How agents consume Skills
 
@@ -61,7 +61,7 @@ See [docs/agent-lifecycle.md](../docs/agent-lifecycle.md#3-consuming-skills) and
 1. The Skills are installed where the runtime discovers them: as an OpenHands plugin (the repository
    root contains [plugin.json](../plugin.json)), in a user, project or organisation skills directory,
    or in the Claude Code skills directory for ACP profiles.
-2. The activation prompt names the Skills the role must use.
+2. Each subagent definition preloads the Skills of its role (`skills:`); the coordinator loads `orchestration`.
 3. If a Skill is not visible in the session (a known limitation for some ACP versions), the agent
    reads `SKILL.md` directly from this repository before starting.
 
