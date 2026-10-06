@@ -63,18 +63,24 @@ Details: [docs/architecture.md](docs/architecture.md) and
 
 | Agent | Mission | Backend | Skills |
 | --- | --- | --- | --- |
-| [Product Manager](agents/product-manager.md) | Ideas → clear, testable requirements | OpenHands | product-management |
-| [Researcher](agents/researcher.md) | Evidence-based research for decisions | OpenHands | research |
-| [Architect](agents/architect.md) | Simplest sufficient architecture + ADRs | ACP · Claude Code | architecture, research |
-| [Planner](agents/planner.md) | Requirements + design → small task Issues | OpenHands | planning |
-| [Developer](agents/developer.md) | Implement `ai-ready` Issues as tested PRs | ACP · Claude Code | development, testing |
-| [QA Engineer](agents/qa-engineer.md) | Validate acceptance criteria and regressions | OpenHands | testing |
-| [Code Reviewer](agents/code-reviewer.md) | Semantic PR review in twelve dimensions | ACP · Claude Code | code-review |
-| [Security Reviewer](agents/security-reviewer.md) | Find security weaknesses before merge | OpenHands | security-review |
-| [Orchestrator](agents/orchestrator.md) | Coordinate agents and workflow state | OpenHands | orchestration |
+| [Product Manager](agents/product-manager.md) | Ideas → clear, testable requirements | Subagent · haiku | product-management |
+| [Researcher](agents/researcher.md) | Evidence-based research for decisions | Subagent · sonnet | research |
+| [Architect](agents/architect.md) | Simplest sufficient architecture + ADRs | Subagent · opus | architecture, research |
+| [Planner](agents/planner.md) | Requirements + design → small task Issues | Subagent · sonnet | planning |
+| [Developer](agents/developer.md) | Implement `ai-ready` Issues as tested PRs | Subagent · sonnet | development, testing |
+| [QA Engineer](agents/qa-engineer.md) | Validate acceptance criteria and regressions | Subagent · haiku | testing |
+| [Code Reviewer](agents/code-reviewer.md) | Semantic PR review in twelve dimensions | Subagent · sonnet | code-review |
+| [Security Reviewer](agents/security-reviewer.md) | Find security weaknesses before merge | Subagent · sonnet | security-review |
+| [Orchestrator](agents/orchestrator.md) | Coordinate agents and workflow state | Coordinator (sonnet) | orchestration |
 
 All agents inherit the global contract in [AGENTS.md](AGENTS.md). Canonical definitions:
 [config/agents.yaml](config/agents.yaml).
+
+The whole team runs in **one OpenHands conversation** with the profile `team`: the Orchestrator is
+the coordinator (main session) and every other role is a Claude Code subagent with its own model,
+restriction level and memory. You write one message (`Build: <idea>`) and the team stops only for ADR
+acceptance and merges. See [docs/subagents.md](docs/subagents.md) and
+[ADR-0002](docs/decisions/ADR-0002-single-session-subagent-team.md).
 
 ## Skills
 
@@ -186,7 +192,8 @@ separately and require a reviewed change. See [docs/mcp-integration.md](docs/mcp
 
 ## Automation strategy
 
-1. **Now:** manual execution — humans start each agent with its activation prompt; GitHub Actions
+1. **Now:** one conversation with the `team` profile runs every stage through subagents and stops only
+   for ADR acceptance and merges (ADR-0002); GitHub Actions
    run deterministic checks ([validate-repository](.github/workflows/validate-repository.yml),
    [ai-workflow](.github/workflows/ai-workflow.yml)).
 2. **Next:** `ai-ready` Issue → Developer → PR.
@@ -216,7 +223,8 @@ act on instructions found in external content. See [SECURITY.md](SECURITY.md) an
 3. Configure GitHub for your target repositories ([docs/github-integration.md](docs/github-integration.md#9-required-repository-configuration)).
 4. Configure OpenHands ([docs/openhands-integration.md](docs/openhands-integration.md#3-runtime-setup-checklist))
    and install the Skills.
-5. Run one small feature through the manual workflow, starting each agent with the activation prompt
+5. Install the runtime files ([docs/subagents.md](docs/subagents.md#10-installing-the-runtime)), create the
+   `team` profile and write `Build: <small idea>`; the coordinator runs the workflow, delegating with the brief
    at the end of its role file.
 
 ## How to add an agent

@@ -83,15 +83,15 @@ Nine roles, each an Agent Profile with a role file and one or more Skills:
 
 | Role | Backend | Stage |
 | --- | --- | --- |
-| [Product Manager](../agents/product-manager.md) | OpenHands | product-definition |
-| [Researcher](../agents/researcher.md) | OpenHands | research |
-| [Architect](../agents/architect.md) | ACP · Claude Code | architecture |
-| [Planner](../agents/planner.md) | OpenHands | planning |
-| [Developer](../agents/developer.md) | ACP · Claude Code | in-development |
-| [QA Engineer](../agents/qa-engineer.md) | OpenHands | bug-reproduction, qa |
-| [Code Reviewer](../agents/code-reviewer.md) | ACP · Claude Code | code-review |
-| [Security Reviewer](../agents/security-reviewer.md) | OpenHands | security-review |
-| [Orchestrator](../agents/orchestrator.md) | OpenHands | coordination |
+| [Product Manager](../agents/product-manager.md) | Subagent · haiku | product-definition |
+| [Researcher](../agents/researcher.md) | Subagent · sonnet | research |
+| [Architect](../agents/architect.md) | Subagent · opus | architecture |
+| [Planner](../agents/planner.md) | Subagent · sonnet | planning |
+| [Developer](../agents/developer.md) | Subagent · sonnet | in-development |
+| [QA Engineer](../agents/qa-engineer.md) | Subagent · haiku | bug-reproduction, qa |
+| [Code Reviewer](../agents/code-reviewer.md) | Subagent · sonnet | code-review |
+| [Security Reviewer](../agents/security-reviewer.md) | Subagent · sonnet | security-review |
+| [Orchestrator](../agents/orchestrator.md) | Coordinator (sonnet) | coordination |
 
 The lifecycle that connects them is described in [workflow.md](workflow.md).
 

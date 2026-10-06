@@ -20,18 +20,19 @@ flowchart TD
 
 ## 1. Receiving work
 
-An agent run always concerns exactly **one stage of one work item** (an Issue or a Pull Request)
-and runs with the Agent Profile named after the role. When the stage ends the agent hands off and the
-conversation stops: the next stage is a different conversation, so that nobody reviews their own
-work and every stage leaves its artifact in GitHub (AGENTS.md section 16).
+An agent run always concerns exactly **one stage of one work item** (an Issue or a Pull Request). Since
+[ADR-0002](decisions/ADR-0002-single-session-subagent-team.md) every role runs as a Claude Code
+subagent of one coordinator session: the coordinator sends a **brief** (work item, directory,
+checkpoint, inputs, constraints, done-when) and the subagent returns the **result contract**
+(STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT). Nobody reviews their own work, because reviews run in
+separate subagent contexts (AGENTS.md section 16).
 
-| Phase | How the run starts |
+| Who starts it | How |
 | --- | --- |
-| Phase 1 (current) | A human sees the `agent:*` label (or reads the Orchestrator's "Next step" comment), starts an OpenHands conversation with the matching Agent Profile, and sends the role's activation prompt with the work item filled in. The agent works in the conversation's own workspace and clones the target repository there. |
-| Later phases | An automation starts the conversation when a label or event occurs (see [automation.md](automation.md)). The activation prompt is the same. |
+| The person | One message to the `team` profile: `Build: <idea>`, `continúa`, `reanuda #<n>` |
+| The coordinator | Delegates each stage to the role's subagent with a brief ([docs/subagents.md](subagents.md)) |
 
-The work item is valid for the agent only if it carries the agent's `agent:*` label (and
-`ai-ready` for the Developer). Otherwise the agent comments and stops.
+If a checkpoint exists for the item, the subagent resumes from it instead of starting over.
 
 ## 2. Inspecting context
 
@@ -49,7 +50,7 @@ input listed as required is missing, that is an escalation (section 7), not an i
 
 ## 3. Consuming Skills
 
-- The role file's *Required skills* and the activation prompt name the Skills to use.
+- The role file's *Required skills* name the Skills; the subagent definition preloads them (`skills:`).
 - OpenHands advertises installed Skills by name and description and loads the full `SKILL.md` when
   the agent invokes it (*Official* behaviour of OpenHands skills).
 - The agent follows the Skill's **Procedure** step by step, obeys its **Rules**, produces its
@@ -72,16 +73,16 @@ input listed as required is missing, that is an escalation (section 7), not an i
 
 ## 5. Using ACP
 
-For the Architect, Developer and Code Reviewer the Agent Profile is of ACP type: OpenHands spawns
-Claude Code as a subprocess and relays the conversation. From the role's perspective the lifecycle
-is identical; differences are technical:
+The `team` profile is of ACP type: OpenHands spawns Claude Code as a subprocess and relays the
+conversation; the coordinator and every subagent run inside that Claude Code session.
 
-- Claude Code uses its own tools (file editing, shell, git, web) rather than OpenHands tools.
-- OpenHands MCP configuration is not available to it; GitHub access uses the `GITHUB_TOKEN`
-  secret exported into its environment.
-- It reads `CLAUDE.md` natively; the target repository's `CLAUDE.md` imports `AGENTS.md`.
+- Claude Code uses its own tools (file editing, shell, git, web) rather than OpenHands tools; the
+  team's hooks restrict them per restriction level.
+- OpenHands MCP configuration is not available to it; GitHub access uses the `GITHUB_TOKEN` secret.
+- It reads `~/.claude/CLAUDE.md` (shared team rules) and the project's `CLAUDE.md`, which imports
+  `AGENTS.md`.
 
-Details: [acp-integration.md](acp-integration.md).
+Details: [acp-integration.md](acp-integration.md) and [subagents.md](subagents.md).
 
 ## 6. Producing and persisting artifacts
 

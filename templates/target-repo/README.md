@@ -8,7 +8,8 @@ side is in [docs/openhands-integration.md](../../docs/openhands-integration.md).
 | --- | --- | --- |
 | [AGENTS.md](AGENTS.md) | `AGENTS.md` | Project facts, the essential team rules and the role → skill table |
 | [CLAUDE.md](CLAUDE.md) | `CLAUDE.md` | Makes Claude Code (ACP profiles) read the same `AGENTS.md` |
-| [.github/workflows/pr-conventions.yml](.github/workflows/pr-conventions.yml) | `.github/workflows/pr-conventions.yml` | Deterministic Pull Request check: Conventional Commits, branch name, exactly one `Closes #n` |
+| [.github/workflows/pr-conventions.yml](.github/workflows/pr-conventions.yml) | `.github/workflows/pr-conventions.yml` | Deterministic Pull Request check: Conventional Commits, branch name, exactly one `Closes #n`, no `changes-requested` label |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | `.github/workflows/ci.yml` | Lint, test and build for a Node.js project; adjust the commands for other stacks |
 
 Also copy from this repository: `.github/pull_request_template.md` (the check requires its sections),
 `.github/ISSUE_TEMPLATE/` (without `config.yml`, which points to this repository's security
@@ -29,6 +30,7 @@ Run these once per project, as a human administrator. Agents cannot create workf
    done
    gh label create blocked --color b60205 --repo $R --force
    gh label create needs-human --color d93f0b --repo $R --force
+   gh label create changes-requested --color e99695 --repo $R --force
    ```
 
    PowerShell:
@@ -41,6 +43,7 @@ Run these once per project, as a human administrator. Agents cannot create workf
    }
    gh label create blocked --color b60205 --repo $r --force
    gh label create needs-human --color d93f0b --repo $r --force
+   gh label create changes-requested --color e99695 --repo $r --force
    ```
 
 3. **Merge settings and branch protection**, before any agent works on the repository: squash merging
@@ -50,11 +53,11 @@ Run these once per project, as a human administrator. Agents cannot create workf
 4. **Token access.** The `GITHUB_TOKEN` secret of the OpenHands runtime must reach this repository
    (Contents, Issues and Pull requests with read and write, Metadata read) and read the team
    repository.
-5. **Required check.** After the first Pull Request has run `pr-conventions`, mark it as a required
-   status check of `main`.
+5. **Required checks.** After the first Pull Request has run `pr-conventions` and `ci`, mark both as
+   required status checks of `main`.
 
 ## Starting work
 
-Every stage is a new conversation with the Agent Profile of the role and the activation message of
-`agents/<role>.md` in the team repository, with the work item filled in. Ask the Orchestrator for the
-"Next step" comment when it is not obvious which role comes next.
+Start one conversation with the `team` Agent Profile and write `Build: <idea>` (or `continúa`,
+`reanuda #<issue>`, `estado`). The coordinator delegates every stage to the role subagents and stops
+only for ADR acceptance and merges; see docs/subagents.md in the team repository.

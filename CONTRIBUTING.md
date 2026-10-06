@@ -34,7 +34,7 @@ branch, a Pull Request, deterministic validation and human review.
 
 1. Write an ADR (adding a role changes the team architecture) from [templates/adr.md](templates/adr.md).
 2. Create `agents/<agent-id>.md` with all sections in [agents/README.md](agents/README.md#structure-of-a-role-file),
-   including the activation prompt. Make it specific — do not copy another role's text.
+   including the delegation brief. Make it specific — do not copy another role's text.
 3. Add the agent to [config/agents.yaml](config/agents.yaml): name, profile file, label,
    execution backend, mission, responsibilities, skills, MCP capabilities, outputs, hand-offs.
 4. Add its access boundaries to [config/permissions.yaml](config/permissions.yaml) using the shared
@@ -46,8 +46,12 @@ branch, a Pull Request, deterministic validation and human review.
    [agents/README.md](agents/README.md) and [docs/architecture.md](docs/architecture.md).
 8. If it needs a new label, add it to `config/workflow.yaml` and the label commands in
    [docs/github-integration.md](docs/github-integration.md#2-labels).
-9. Run the validator. In the PR, list the Agent Profile, secrets and MCP references to configure in
-   OpenHands.
+9. Add its `runtime` block in `config/agents.yaml`, create its subagent file in
+   `templates/runtime/claude/agents/<id>.md` (frontmatter must match `runtime`), add it to `LEVELS` in
+   `templates/runtime/claude/hooks/lib.mjs`, and update the catalogue in
+   [docs/subagents.md](docs/subagents.md).
+10. Run the validator and `node templates/runtime/claude/hooks/test-hooks.mjs`. In the PR, list the
+    runtime files to reinstall in the `~/.claude` volume.
 
 ## Modifying an agent
 

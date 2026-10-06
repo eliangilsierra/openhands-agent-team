@@ -83,42 +83,28 @@ Perform these steps as an OpenHands administrator. Exact menu names may differ b
       Claude Code reads).
 - [ ] Create any MCP credentials (for example a search API key) as secrets.
 
-### 3.3 LLM profiles (OpenHands-type agents)
+### 3.3 LLM profiles
 
-- [ ] Create at least one LLM profile for routine roles (Product Manager, Planner, QA Engineer,
-      Orchestrator) and, if desired, a stronger one for Researcher and Security Reviewer.
+Not needed for the team: since ADR-0002 every role runs on Claude Code through the `team` profile.
+Keep LLM profiles only for conversations outside the team.
 
 ### 3.4 MCP servers
 
 - [ ] Configure the initial MCP servers described in [mcp-integration.md](mcp-integration.md).
 
-### 3.5 Agent Profiles
+### 3.5 Agent Profile
 
-Create one profile per row. Secrets come from `secrets` in
-[config/permissions.yaml](../config/permissions.yaml); MCP references implement the `github` and
-`web` capabilities in `mcp` of [config/agents.yaml](../config/agents.yaml).
+Since ADR-0002 the team needs **one** Agent Profile:
 
-| Profile name | Agent type | LLM / ACP | OpenHands MCP server references | Secrets (scope: Selected) |
-| --- | --- | --- | --- | --- |
-| `product-manager` | OpenHands | routine LLM profile | github | `GITHUB_TOKEN` |
-| `researcher` | OpenHands | research LLM profile | github (+ fetch, if configured) | `GITHUB_TOKEN` |
-| `architect` | ACP | Claude Code | configured in Claude Code (see ACP doc) | `GITHUB_TOKEN`, `ANTHROPIC_API_KEY`* |
-| `planner` | OpenHands | routine LLM profile | github | `GITHUB_TOKEN` |
-| `developer` | ACP | Claude Code | configured in Claude Code (see ACP doc) | `GITHUB_TOKEN`, `ANTHROPIC_API_KEY`* |
-| `qa-engineer` | OpenHands | routine LLM profile | github | `GITHUB_TOKEN` |
-| `code-reviewer` | ACP | Claude Code | configured in Claude Code (see ACP doc) | `GITHUB_TOKEN`, `ANTHROPIC_API_KEY`* |
-| `security-reviewer` | OpenHands | strong LLM profile | github (+ fetch, if configured) | `GITHUB_TOKEN` |
-| `orchestrator` | OpenHands | routine LLM profile | github | `GITHUB_TOKEN` |
+| Profile name | Agent type | ACP settings | Secrets (scope: Selected) |
+| --- | --- | --- | --- |
+| `team` | ACP | Claude Code, `acp_model` `sonnet`, `acp_prompt_timeout` 3600 | `GITHUB_TOKEN` |
 
-\* Only when Claude Code is not authenticated with a subscription login in the runtime.
-
-The filesystem/repository capability is provided by the runtime's built-in file and shell tools
-for OpenHands-type agents and by Claude Code's own tools for ACP agents; no separate filesystem MCP
-server is needed initially (see [mcp-integration.md](mcp-integration.md)).
-
-- [ ] If your agent server does not support per-profile secret scoping, note that every profile
-      receives every secret, and compensate by keeping the secret set minimal (one GitHub token
-      with least privilege).
+Claude Code authenticates with the subscription login stored in the persistent `~/.claude` volume (or
+`ANTHROPIC_API_KEY` if you prefer an API key; do not configure both). The roles are Claude Code
+subagents installed in that volume; installation steps are in
+[docs/subagents.md](subagents.md#10-installing-the-runtime). Per-role profiles from the previous design
+(archive branch `archive/multi-profile-team`) can be deleted.
 
 ### 3.6 Skills
 
@@ -264,19 +250,16 @@ contains the text to install; copy it to the volume as `CLAUDE.md` owned by the 
 Claude Code treats memory as context, not as enforced configuration, so the activation message
 repeats the essential rules.
 
-## 6. Starting work (phase 1)
+## 6. Starting work
 
-1. Pick the work item (Issue or Pull Request) and identify its owner from the `agent:*` label, or
-   ask the Orchestrator for the "Next step" comment.
-2. Start a **new** conversation in OpenHands. In the chat launcher, open the `+` menu, choose
-   **Switch agent profile** and pick the profile of the role. The profile cannot be changed once the
-   conversation has started.
-3. Paste the activation prompt from the role file (for example
-   [agents/developer.md](../agents/developer.md#activation-prompt)) with the variables filled in. The
-   `Rol:` line must match the profile.
-4. Let the agent finish **its stage only**. Check that it persisted its artifact, handed off the
-   label and posted the "Next step" comment, and that it stopped. The next stage is a new
-   conversation (AGENTS.md section 16).
+1. Start a **new** conversation in OpenHands with the Agent Profile `team` (chat launcher, `+` menu,
+   **Switch agent profile**).
+2. Write one message: `Build: <idea>` for a new feature, `Fix: <bug>`, `continúa` after you merged a
+   Pull Request or accepted an ADR, `reanuda #<issue>` to continue a feature in a new conversation, or
+   `estado`.
+3. The coordinator clones the target repository into the workspace, delegates each stage to a subagent
+   and stops only for ADR acceptance and merges, with a list of what waits on you
+   ([docs/subagents.md](subagents.md#11-using-the-team)).
 
 ## 7. Keeping runtime and specification aligned
 
