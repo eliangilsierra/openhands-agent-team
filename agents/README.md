@@ -10,15 +10,15 @@ specific to that role and never relaxes the global contract.
 
 | Agent | File | Backend | Skills | Label |
 | --- | --- | --- | --- | --- |
-| Product Manager | [product-manager.md](product-manager.md) | OpenHands | product-management | `agent:product` |
-| Researcher | [researcher.md](researcher.md) | OpenHands | research | `agent:research` |
-| Architect | [architect.md](architect.md) | ACP · Claude Code | architecture, research | `agent:architect` |
-| Planner | [planner.md](planner.md) | OpenHands | planning | `agent:planner` |
-| Developer | [developer.md](developer.md) | ACP · Claude Code | development, testing | `agent:developer` |
-| QA Engineer | [qa-engineer.md](qa-engineer.md) | OpenHands | testing | `agent:qa` |
-| Code Reviewer | [code-reviewer.md](code-reviewer.md) | ACP · Claude Code | code-review | `agent:reviewer` |
-| Security Reviewer | [security-reviewer.md](security-reviewer.md) | OpenHands | security-review | `agent:security` |
-| Orchestrator | [orchestrator.md](orchestrator.md) | OpenHands | orchestration | — |
+| Product Manager | [product-manager.md](product-manager.md) | Subagent | product-management | `agent:product` |
+| Researcher | [researcher.md](researcher.md) | Subagent | research | `agent:research` |
+| Architect | [architect.md](architect.md) | Subagent | architecture, research | `agent:architect` |
+| Planner | [planner.md](planner.md) | Subagent | planning | `agent:planner` |
+| Developer | [developer.md](developer.md) | Subagent | development, testing | `agent:developer` |
+| QA Engineer | [qa-engineer.md](qa-engineer.md) | Subagent | testing | `agent:qa` |
+| Code Reviewer | [code-reviewer.md](code-reviewer.md) | Subagent | code-review | `agent:reviewer` |
+| Security Reviewer | [security-reviewer.md](security-reviewer.md) | Subagent | security-review | `agent:security` |
+| Orchestrator | [orchestrator.md](orchestrator.md) | Coordinator (main session) | orchestration | — |
 
 The machine-readable version of this table is [config/agents.yaml](../config/agents.yaml); access
 boundaries are in [config/permissions.yaml](../config/permissions.yaml). The validation script
@@ -42,32 +42,28 @@ Every role file contains these sections, in this order:
 | Expected behavior | How the agent works and communicates |
 | Definition of Done | When the agent's stage is complete |
 | Escalation rules | When and how to stop and hand off |
-| Activation prompt | The first message used to start a conversation with this profile |
+| Delegation brief | Runtime settings (model, effort, turns, budget, level) and the brief the coordinator sends |
 
-## Activation prompts
+## How the roles run
 
-OpenHands Agent Profiles select *which agent and configuration* runs a conversation; for Claude
-Code (ACP) profiles there is no field to store role instructions, so the role behaviour is delivered
-through context. Each role file therefore ends with an **activation prompt**: the first message a
-human (or, later, an automation) sends when starting a conversation with that profile. The message
-is written in Spanish for the people who send it; the files it points to are in English.
+All roles run in **one** OpenHands conversation with the ACP Agent Profile `team` (ADR-0002). The
+Orchestrator is the main session (the coordinator); every other role is a Claude Code subagent
+generated from [config/agents.yaml](../config/agents.yaml) into
+[templates/runtime/claude/agents/](../templates/runtime/claude/agents/) and installed in
+`~/.claude/agents/`. The coordinator delegates with the brief at the end of each role file; nobody
+pastes prompts by hand. See [docs/subagents.md](../docs/subagents.md).
 
-Rules of the standard message, identical for every role:
-
-| Rule | Why |
-| --- | --- |
-| The first line is `Rol: <id>`, and the profile chosen in the chat launcher has the same name | The profile fixes the model and the secrets; the line fixes the role |
-| The work item is named and the message says "SOLO este trabajo" | One stage and one work item per conversation (AGENTS.md section 16) |
-| Work happens in the conversation's current directory; the team repository is read with `gh api` | The OpenHands interface shows that workspace |
-| The agent stops after the "Siguiente paso" comment | A different conversation does each following stage |
-
-Values in double braces are filled in at activation time:
-
-| Variable | Meaning |
-| --- | --- |
-| `{{team_repo}}` | URL of this repository, for example `https://github.com/<owner>/openhands-agent-team` |
-| `{{target_repo}}` | `owner/name` of the application repository being worked on |
-| `{{work_item}}` | Issue or Pull Request number of the work item, for example `#12` |
+| Role | Model | Escalation | Level | Parallel |
+| --- | --- | --- | --- | --- |
+| Orchestrator | `sonnet` | — | R0 | 1 |
+| Product Manager | `haiku` | sonnet | R2 | 1 |
+| Researcher | `sonnet` | opus | R1 | 3 |
+| Architect | `opus` | — | R3 | 1 |
+| Planner | `sonnet` | opus | R2 | 1 |
+| Developer | `sonnet` | opus | R4 | 2 |
+| QA Engineer | `haiku` | sonnet | R1 | 2 |
+| Code Reviewer | `sonnet` | opus | R1 | 2 |
+| Security Reviewer | `sonnet` | opus | R1 | 2 |
 
 ## Ownership boundaries at a glance
 

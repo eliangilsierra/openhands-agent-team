@@ -26,7 +26,7 @@ and a human approves everything that reaches a protected branch.
 3. **Simplicity first.** Prefer the simplest solution that satisfies the requirements. New
    infrastructure, services or dependencies require justification and, when architectural, an ADR.
 4. **Stay in your role.** Do your own stage's work. Hand work that belongs to another role to that
-   role through GitHub; do not do it yourself. A conversation covers one stage of one work item
+   role through GitHub; do not do it yourself. Each subagent covers one stage of one work item
    (see section 16).
 5. **Leave a trail.** Anything another agent or a human needs later is written to GitHub, not kept
    in conversation memory.
@@ -218,8 +218,9 @@ All agents must never:
 - Commit or push to `main` or any protected branch, merge a Pull Request (on GitHub or with a local
   `git merge`), enable auto-merge, or submit an `APPROVE` review.
 - Implement more than one task Issue on a branch or in a Pull Request.
-- Take another role, run the next stage, or process another work item in the same conversation.
-- Review, test or security-review work that the same conversation or agent produced, or skip QA,
+- Take another role, run the next stage, or process another work item in the same agent context
+  (each subagent does one stage of one item; only the coordinator schedules).
+- Review, test or security-review work that the same agent context produced, or skip QA,
   Code Review or Security Review.
 - Commit QA reports, reviews or status notes as repository files instead of posting them on the
   Pull Request or Issue.
@@ -243,21 +244,31 @@ Agents changing it follow [CONTRIBUTING.md](CONTRIBUTING.md) and must run
 
 ## 16. Conversation scope and workspace
 
-1. **One stage per conversation.** A conversation performs exactly one stage for exactly one work
-   item (one Issue or one Pull Request), hands it off and stops. Do not continue with the next
-   stage, do not take another role and do not pick up other work items, even if you believe you
-   could finish the whole flow. The activation message names the role and the work item; if it
-   names none, ask before doing anything.
-2. **Independence.** The agent that produced a change never reviews it. QA, Code Review and
-   Security Review are separate conversations that start from the Pull Request on GitHub. Skipping
-   one of them is not allowed for any Pull Request; only the stages marked conditional in
-   [`config/workflow.yaml`](config/workflow.yaml) can be skipped, and only for the stated reasons.
-3. **Workspace.** Work inside the conversation's current working directory (the workspace shown in
-   the OpenHands interface). Clone the target repository there. Read the team repository with
-   `gh api`, or clone it outside the workspace; never copy team files into the target repository's
-   working tree. Do not do the work in `/tmp`, in another shared directory or in another
+The team runs in **one OpenHands conversation** with the ACP Agent Profile `team` (Claude Code). Its
+main session is the **coordinator** (the Orchestrator role, skill
+[orchestration](skills/orchestration/SKILL.md)); every other role is a Claude Code **subagent** with
+its own context, model, tools and skills ([docs/subagents.md](docs/subagents.md), ADR-0002).
+
+1. **One stage per subagent.** The coordinator delegates one stage of one work item (one Issue or one
+   Pull Request) to one subagent with a brief. The subagent does that stage, updates its checkpoint and
+   reports with the result contract. It never continues with the next stage, takes another role or
+   picks up another work item.
+2. **Independence.** A subagent never reviews, tests or security-reviews what its own context
+   produced. QA, Code Review and Security Review are separate subagents that start from the Pull Request
+   on GitHub, and none of them is skipped. Only the stages marked conditional in
+   [`config/workflow.yaml`](config/workflow.yaml) can be skipped, for the stated reasons.
+3. **Human gates.** The team stops only for ADR acceptance and Pull Request merges. Gates are per work
+   item: while one item waits, the coordinator continues with independent items. Other doubts are
+   recorded as assumptions or as `needs-human` questions on the item.
+4. **Workspace.** The conversation's working directory holds the clone of the target repository at
+   its root; developers work in their own git worktrees. Read the team repository with `gh api`; never
+   copy team files into the target repository's working tree. Do not work in `/tmp` or in another
    conversation's workspace.
-4. **Labels.** When your stage ends, replace your `agent:*` label with the next owner's. Remove
+5. **State that survives interruptions.** The team board (`.agent-state/board.md`) and one checkpoint
+   per item (`.agent-state/items/<n>.md`) are kept up to date and mirrored to a "Team board" comment on
+   the feature Issue and a "Checkpoint" comment on the item. Developers push early and open draft Pull
+   Requests, so progress never lives only on one machine.
+6. **Labels.** The owning subagent swaps its `agent:*` label for the next owner's; a Pull Request in
+   parallel review carries `agent:reviewer` and `agent:security` together. `changes-requested` marks a
+   QA `FAIL` or a review outcome `CHANGES REQUESTED` and blocks the Pull Request check. Remove
    `ai-ready` when development starts. Do not close Issues by hand.
-5. **Hand-off.** End every conversation with a "Next step" comment on the work item: the stage
-   that follows, the exact Agent Profile and role id to use, and the activation message to paste.

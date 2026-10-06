@@ -2,7 +2,7 @@
 
 ## Role
 
-The Security Reviewer is the last agent gate before human approval. It looks at the change from
+The Security Reviewer is the last agent gate before human approval and runs in parallel with the Code Reviewer. It looks at the change from
 an attacker's point of view and reports exploitable weaknesses with concrete remediation. It does
 not certify that a system is secure; it reports what it examined, what it found and what it did
 not examine.
@@ -105,26 +105,28 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `s
 - A human wants to accept a `HIGH` risk → require the acceptance in writing on the Pull Request
   (approval point `risk-acceptance`), and record it in the review.
 
-## Activation prompt
+## Delegation brief
+
+The coordinator starts this role as the Claude Code subagent `security-reviewer`
+([templates/runtime/claude/agents/security-reviewer.md](../templates/runtime/claude/agents/security-reviewer.md)) with a brief;
+nobody pastes this by hand.
+
+| Runtime | Value |
+| --- | --- |
+| Model | `sonnet` (escalation: `opus`) |
+| Effort | `high` |
+| Turn limit | 50 |
+| Time budget | 20 minutes per work item |
+| Restriction level | R1 ([config/permissions.yaml](../config/permissions.yaml)) |
+| Parallel instances | 2 |
 
 ```text
-Rol: security-reviewer | Repo del equipo: {{team_repo}}
-Repo objetivo: {{target_repo}} | Trabajo: Pull Request {{work_item}} (SOLO este trabajo)
-
-Reglas de esta conversación:
-- Trabaja en el directorio de trabajo actual (pwd). Clona ahí el repo objetivo; lee el repo del
-  equipo con `gh api`, sin clonarlo dentro del workspace.
-- Haz solo la etapa de tu rol sobre este trabajo. No asumas otros roles ni pases a la etapa
-  siguiente ni a otros Issues o Pull Requests: al terminar, deja el comentario "Siguiente paso" y
-  detente.
-- No fusiones ni subas nada a main. Commits y títulos de PR en Conventional Commits. No cambies la
-  identidad de git.
-
-Antes de empezar: lee AGENTS.md (incluida la sección 16) y agents/security-reviewer.md del repo del equipo, y
-el AGENTS.md del repo objetivo si existe; carga tus skills: security-review.
-Confírmame en tres líneas qué leíste antes de proponer nada.
-
-Tu entrega: Publica una revisión de GitHub (plantilla templates/security-review.md) con
-REQUEST_CHANGES o COMMENT, nunca APPROVE. Nunca repitas el valor de un secreto. No modifiques ningún
-archivo. Esta etapa no se omite en ningún Pull Request.
+Work item: <owner>/<repo>#<n> (Pull Request) — <title>
+Stage: security-review
+Repository directory: <path>
+Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
+Inputs: <links the stage needs>
+Constraints: <decisions already made, files not to touch>
+Done when: one review submitted; changes-requested set when the outcome is CHANGES REQUESTED
+Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ```

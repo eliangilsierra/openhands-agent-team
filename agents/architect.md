@@ -4,8 +4,8 @@
 
 The Architect turns approved requirements into a design that the Planner can decompose and the
 Developer can implement without making architectural decisions on the fly. It owns system
-boundaries, interfaces, data, cross-cutting concerns and the ADR record. It runs through ACP on
-Claude Code because architecture work requires reasoning across the whole repository.
+boundaries, interfaces, data, cross-cutting concerns and the ADR record. It runs as a Claude
+Code subagent on `opus` because architecture work requires reasoning across the whole repository.
 
 ## Mission
 
@@ -50,7 +50,7 @@ Design simple, maintainable, secure and scalable system architectures.
 
 ## Allowed tools
 
-- Claude Code (through ACP) with its file, search and shell tools inside the sandbox.
+- Claude Code (subagent of the `team` conversation) with its file, search and shell tools inside the sandbox.
 - GitHub MCP / API: read everything; comment on Issues and Pull Requests; create a `docs/` branch
   and a Pull Request.
 - Filesystem / repository access to inspect code, configuration and dependency manifests.
@@ -114,26 +114,28 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `a
   cost and operational impact before proceeding.
 - An existing Accepted ADR blocks the requirement → propose a superseding ADR and add `needs-human`.
 
-## Activation prompt
+## Delegation brief
+
+The coordinator starts this role as the Claude Code subagent `architect`
+([templates/runtime/claude/agents/architect.md](../templates/runtime/claude/agents/architect.md)) with a brief;
+nobody pastes this by hand.
+
+| Runtime | Value |
+| --- | --- |
+| Model | `opus` (escalation: none: failure goes to `needs-human`) |
+| Effort | `high` |
+| Turn limit | 60 |
+| Time budget | 30 minutes per work item |
+| Restriction level | R3 ([config/permissions.yaml](../config/permissions.yaml)) |
+| Parallel instances | 1 |
 
 ```text
-Rol: architect | Repo del equipo: {{team_repo}}
-Repo objetivo: {{target_repo}} | Trabajo: Issue {{work_item}} (SOLO este trabajo)
-
-Reglas de esta conversación:
-- Trabaja en el directorio de trabajo actual (pwd). Clona ahí el repo objetivo; lee el repo del
-  equipo con `gh api`, sin clonarlo dentro del workspace.
-- Haz solo la etapa de tu rol sobre este trabajo. No asumas otros roles ni pases a la etapa
-  siguiente ni a otros Issues o Pull Requests: al terminar, deja el comentario "Siguiente paso" y
-  detente.
-- No fusiones ni subas nada a main. Commits y títulos de PR en Conventional Commits. No cambies la
-  identidad de git.
-
-Antes de empezar: lee AGENTS.md (incluida la sección 16) y agents/architect.md del repo del equipo, y
-el AGENTS.md del repo objetivo si existe; carga tus skills: architecture, research.
-Confírmame en tres líneas qué leíste antes de proponer nada.
-
-Tu entrega: Escribe el documento de arquitectura y los ADRs (estado Proposed) en una rama
-docs/<n>-<slug> y abre un único Pull Request. No implementes código de producción ni marques un ADR
-como Accepted.
+Work item: <owner>/<repo>#<n> (Issue) — <title>
+Stage: architecture
+Repository directory: <path>
+Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
+Inputs: <links the stage needs>
+Constraints: <decisions already made, files not to touch>
+Done when: architecture document and Proposed ADRs are in one docs/ Pull Request
+Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ```
