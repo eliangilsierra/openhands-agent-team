@@ -1,0 +1,135 @@
+{
+  "generated_by": "scripts/generate_runtime.py from config/specialists.yaml - do not edit",
+  "base_role": "developer",
+  "base_skills": [
+    "development",
+    "testing"
+  ],
+  "routing": {
+    "priority": [
+      "nextjs",
+      "angular",
+      "vue",
+      "react",
+      "react-native",
+      "android",
+      "spring",
+      "java",
+      "kotlin",
+      "dotnet",
+      "go",
+      "python",
+      "node",
+      "typescript",
+      "javascript"
+    ],
+    "fallback": "developer",
+    "on_multiple_stacks": "split"
+  },
+  "specialists": {
+    "developer": {
+      "title": "Generalist Developer",
+      "stacks": [],
+      "skills": []
+    },
+    "developer-typescript": {
+      "title": "TypeScript and Node.js Developer",
+      "stacks": [
+        "node",
+        "typescript",
+        "javascript"
+      ],
+      "skills": [
+        "stack-typescript"
+      ]
+    },
+    "developer-react": {
+      "title": "React Developer",
+      "stacks": [
+        "react",
+        "react-native"
+      ],
+      "skills": [
+        "stack-react",
+        "stack-typescript"
+      ]
+    },
+    "developer-nextjs": {
+      "title": "Next.js Developer",
+      "stacks": [
+        "nextjs"
+      ],
+      "skills": [
+        "stack-nextjs",
+        "stack-react"
+      ]
+    },
+    "developer-angular": {
+      "title": "Angular Developer",
+      "stacks": [
+        "angular"
+      ],
+      "skills": [
+        "stack-angular",
+        "stack-typescript"
+      ]
+    },
+    "developer-vue": {
+      "title": "Vue Developer",
+      "stacks": [
+        "vue"
+      ],
+      "skills": [
+        "stack-vue",
+        "stack-typescript"
+      ]
+    },
+    "developer-java-spring": {
+      "title": "Java and Spring Boot Developer",
+      "stacks": [
+        "spring",
+        "java"
+      ],
+      "skills": [
+        "stack-java-spring"
+      ]
+    },
+    "developer-kotlin-android": {
+      "title": "Kotlin and Android Developer",
+      "stacks": [
+        "android",
+        "kotlin"
+      ],
+      "skills": [
+        "stack-kotlin-android"
+      ]
+    },
+    "developer-python": {
+      "title": "Python Developer",
+      "stacks": [
+        "python"
+      ],
+      "skills": [
+        "stack-python"
+      ]
+    },
+    "developer-go": {
+      "title": "Go Developer",
+      "stacks": [
+        "go"
+      ],
+      "skills": [
+        "stack-go"
+      ]
+    },
+    "developer-dotnet": {
+      "title": ".NET Developer",
+      "stacks": [
+        "dotnet"
+      ],
+      "skills": [
+        "stack-dotnet"
+      ]
+    }
+  }
+}

@@ -31,6 +31,10 @@ them so precisely that the Developer can act without a follow-up conversation.
    description before the diff. Note what the change *should* do.
 2. **Survey the diff.** List changed files and classify them (source, tests, config, migrations,
    docs, generated). Decide what is out of review scope (for example generated lockfiles) and say so.
+   Load the stack skill of every stack the diff touches (`stack-java-spring`, `stack-react`, ...;
+   the module's specialist is in the Pull Request's task `Stack:` line or in
+   [stack-routing](../stack-routing/SKILL.md)) and use its quality checklist and "common review
+   findings" as stack-specific questions inside the dimensions below.
 3. **Check out and explore.** Check out the branch in the sandbox. Open the surrounding code for
    every non-trivial hunk: callers, error paths, data flow.
 4. **Review in this order.** For each dimension, ask the questions and record findings.
