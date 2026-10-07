@@ -13,11 +13,39 @@ instructions.
 | [research](research/SKILL.md) | Question → classified, sourced evidence → recommendation | Researcher, Architect | [research.md](../templates/research.md) |
 | [architecture](architecture/SKILL.md) | Requirements → simplest sufficient design + ADRs | Architect | [architecture.md](../templates/architecture.md), [adr.md](../templates/adr.md) |
 | [planning](planning/SKILL.md) | Requirements + design → small, ordered task Issues | Planner | [implementation-plan.md](../templates/implementation-plan.md) |
-| [development](development/SKILL.md) | Task Issue → branch → tested Pull Request | Developer | [pull_request_template.md](../.github/pull_request_template.md) |
+| [development](development/SKILL.md) | Task Issue → branch → tested Pull Request, with helper scripts | Developer and every specialist | [pull_request_template.md](../.github/pull_request_template.md) |
+| [stack-routing](stack-routing/SKILL.md) | Repository → stack profile; task → Developer specialist | Planner, Orchestrator | — |
 | [testing](testing/SKILL.md) | Test strategy and PASS/FAIL/BLOCKED/NOT APPLICABLE reporting | QA Engineer, Developer | [test-plan.md](../templates/test-plan.md) |
 | [code-review](code-review/SKILL.md) | Twelve-dimension semantic PR review | Code Reviewer | [code-review.md](../templates/code-review.md) |
 | [security-review](security-review/SKILL.md) | Attack-surface-driven security review | Security Reviewer | [security-review.md](../templates/security-review.md) |
 | [orchestration](orchestration/SKILL.md) | Route work, keep GitHub state consistent, escalate | Orchestrator | formats inside the Skill |
+
+### Stack skills
+
+Preloaded by the Developer stack specialists ([config/specialists.yaml](../config/specialists.yaml));
+QA and reviewers load them for the stacks a Pull Request touches. Each has deep material in
+`references/`, read only when needed.
+
+| Skill | Stack | Preloaded by |
+| --- | --- | --- |
+| [stack-typescript](stack-typescript/SKILL.md) | TypeScript, JavaScript, Node.js | developer-typescript, developer-react, developer-angular, developer-vue |
+| [stack-react](stack-react/SKILL.md) | React, React Native | developer-react, developer-nextjs |
+| [stack-nextjs](stack-nextjs/SKILL.md) | Next.js | developer-nextjs |
+| [stack-angular](stack-angular/SKILL.md) | Angular | developer-angular |
+| [stack-vue](stack-vue/SKILL.md) | Vue, Nuxt | developer-vue |
+| [stack-java-spring](stack-java-spring/SKILL.md) | Java, Spring Boot | developer-java-spring |
+| [stack-kotlin-android](stack-kotlin-android/SKILL.md) | Kotlin, Android, Ktor | developer-kotlin-android |
+| [stack-python](stack-python/SKILL.md) | Python | developer-python |
+| [stack-go](stack-go/SKILL.md) | Go | developer-go |
+| [stack-dotnet](stack-dotnet/SKILL.md) | C#, .NET | developer-dotnet |
+
+### Scripts and references
+
+A Skill directory may contain `scripts/` (Python 3.10+, standard library only, unit-tested in
+`tests/`) and `references/` (Markdown read on demand), following the Agent Skills
+progressive-disclosure layout: the frontmatter is always visible, the body loads with the Skill, and
+these files load only when a step needs them. Scripts run from the installed skill directory, for
+example `python "$HOME/.claude/skills/development/scripts/run_checks.py"`.
 
 The canonical mapping is [config/skills.yaml](../config/skills.yaml). The `orchestration` Skill is
 an addition to the eight Skills of the initial specification: the Orchestrator needs an

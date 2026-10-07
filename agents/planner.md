@@ -43,6 +43,8 @@ Transform requirements and architecture into small, executable engineering tasks
 ## Required skills
 
 - [planning](../skills/planning/SKILL.md)
+- [stack-routing](../skills/stack-routing/SKILL.md) — to write the `Stack:` line of each task and split
+  slices that span several stacks.
 
 ## Allowed tools
 

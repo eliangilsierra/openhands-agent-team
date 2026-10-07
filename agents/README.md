@@ -13,12 +13,12 @@ specific to that role and never relaxes the global contract.
 | Product Manager | [product-manager.md](product-manager.md) | Subagent | product-management | `agent:product` |
 | Researcher | [researcher.md](researcher.md) | Subagent | research | `agent:research` |
 | Architect | [architect.md](architect.md) | Subagent | architecture, research | `agent:architect` |
-| Planner | [planner.md](planner.md) | Subagent | planning | `agent:planner` |
-| Developer | [developer.md](developer.md) | Subagent | development, testing | `agent:developer` |
+| Planner | [planner.md](planner.md) | Subagent | planning, stack-routing | `agent:planner` |
+| Developer (generalist and ten stack specialists) | [developer.md](developer.md) | Subagents | development, testing, `stack-*` | `agent:developer` |
 | QA Engineer | [qa-engineer.md](qa-engineer.md) | Subagent | testing | `agent:qa` |
 | Code Reviewer | [code-reviewer.md](code-reviewer.md) | Subagent | code-review | `agent:reviewer` |
 | Security Reviewer | [security-reviewer.md](security-reviewer.md) | Subagent | security-review | `agent:security` |
-| Orchestrator | [orchestrator.md](orchestrator.md) | Coordinator (main session) | orchestration | — |
+| Orchestrator | [orchestrator.md](orchestrator.md) | Coordinator (main session) | orchestration, stack-routing | — |
 
 The machine-readable version of this table is [config/agents.yaml](../config/agents.yaml); access
 boundaries are in [config/permissions.yaml](../config/permissions.yaml). The validation script
@@ -60,7 +60,7 @@ pastes prompts by hand. See [docs/subagents.md](../docs/subagents.md).
 | Researcher | `sonnet` | opus | R1 | 3 |
 | Architect | `opus` | — | R3 | 1 |
 | Planner | `sonnet` | opus | R2 | 1 |
-| Developer | `sonnet` | opus | R4 | 2 |
+| Developer (all specialists) | `sonnet` | opus | R4 | 3 |
 | QA Engineer | `haiku` | sonnet | R1 | 2 |
 | Code Reviewer | `sonnet` | opus | R1 | 2 |
 | Security Reviewer | `sonnet` | opus | R1 | 2 |

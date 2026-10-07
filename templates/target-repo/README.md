@@ -9,7 +9,24 @@ side is in [docs/openhands-integration.md](../../docs/openhands-integration.md).
 | [AGENTS.md](AGENTS.md) | `AGENTS.md` | Project facts, the essential team rules and the role → skill table |
 | [CLAUDE.md](CLAUDE.md) | `CLAUDE.md` | Makes Claude Code (ACP profiles) read the same `AGENTS.md` |
 | [.github/workflows/pr-conventions.yml](.github/workflows/pr-conventions.yml) | `.github/workflows/pr-conventions.yml` | Deterministic Pull Request check: Conventional Commits, branch name, exactly one `Closes #n`, no `changes-requested` label |
-| [.github/workflows/ci.yml](.github/workflows/ci.yml) | `.github/workflows/ci.yml` | Lint, test and build for a Node.js project; adjust the commands for other stacks |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | `.github/workflows/ci.yml` | Lint, test and build for a Node.js project |
+| [ci/java-maven.yml](ci/java-maven.yml) | `.github/workflows/ci.yml` | Maven `verify` for Java or Kotlin (Spring Boot) |
+| [ci/java-gradle.yml](ci/java-gradle.yml) | `.github/workflows/ci.yml` | Gradle `build` for Java, Kotlin JVM, Spring Boot or Ktor |
+| [ci/android.yml](ci/android.yml) | `.github/workflows/ci.yml` | Unit tests, Android Lint and debug build |
+| [ci/python.yml](ci/python.yml) | `.github/workflows/ci.yml` | ruff, mypy and pytest with uv |
+| [ci/go.yml](ci/go.yml) | `.github/workflows/ci.yml` | gofmt, vet, race-enabled tests and build |
+| [ci/dotnet.yml](ci/dotnet.yml) | `.github/workflows/ci.yml` | `dotnet format`, build and test |
+
+Choose the CI file of the project's stack (a monorepo combines the jobs of its stacks into one `ci`
+workflow, or keeps one job per stack and marks all of them as required). Fill the "Project facts"
+of `AGENTS.md` from the repository itself:
+
+```bash
+python <team-repo>/skills/stack-routing/scripts/detect_stack.py . --format md
+```
+
+The output lists each module, its stack, the commands and the Developer specialist the coordinator
+will use for it.
 
 Also copy from this repository: `.github/pull_request_template.md` (the check requires its sections),
 `.github/ISSUE_TEMPLATE/` (without `config.yml`, which points to this repository's security

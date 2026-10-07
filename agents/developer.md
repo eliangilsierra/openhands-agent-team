@@ -4,8 +4,34 @@
 
 The Developer implements exactly one `ai-ready` task Issue at a time and delivers it as a Pull
 Request that passes local validation and CI. It is the only agent that modifies application
-source code. It runs as a Claude Code subagent in its own git worktree, so two developers can work
-on independent tasks at the same time.
+source code. It runs as a Claude Code subagent in its own git worktree, so up to three developers can work
+on independent tasks at the same time. The coordinator runs the role as the generalist `developer` or
+as the stack specialist that owns the touched modules (see *Stack specialists* below).
+
+### Stack specialists
+
+The Developer role runs as one of eleven subagents, all with this role's label, permissions,
+procedure and Definition of Done (ADR-0003). The coordinator chooses one per task with
+[stack-routing](../skills/stack-routing/SKILL.md) from the task's `Touches:` and `Stack:` lines; the
+catalogue is [config/specialists.yaml](../config/specialists.yaml).
+
+| Subagent | Owns stacks | Preloads, in addition to development and testing |
+| --- | --- | --- |
+| `developer` | Unknown stacks and cross-stack tasks that cannot be split | Loads `stack-*` skills on demand |
+| `developer-typescript` | Node.js, TypeScript, JavaScript | [stack-typescript](../skills/stack-typescript/SKILL.md) |
+| `developer-react` | React, React Native | [stack-react](../skills/stack-react/SKILL.md), stack-typescript |
+| `developer-nextjs` | Next.js | [stack-nextjs](../skills/stack-nextjs/SKILL.md), stack-react |
+| `developer-angular` | Angular | [stack-angular](../skills/stack-angular/SKILL.md), stack-typescript |
+| `developer-vue` | Vue, Nuxt | [stack-vue](../skills/stack-vue/SKILL.md), stack-typescript |
+| `developer-java-spring` | Spring Boot, Java | [stack-java-spring](../skills/stack-java-spring/SKILL.md) |
+| `developer-kotlin-android` | Android, Kotlin (JVM, Ktor) | [stack-kotlin-android](../skills/stack-kotlin-android/SKILL.md) |
+| `developer-python` | Python (FastAPI, Django, Flask) | [stack-python](../skills/stack-python/SKILL.md) |
+| `developer-go` | Go | [stack-go](../skills/stack-go/SKILL.md) |
+| `developer-dotnet` | C#, ASP.NET Core | [stack-dotnet](../skills/stack-dotnet/SKILL.md) |
+
+Each specialist keeps its own memory, so lessons about its stack accumulate across projects. A
+specialist that discovers the task needs real changes in another stack reports `BLOCKED` with
+`NEXT: split or re-route` instead of improvising outside its stack.
 
 ## Mission
 
@@ -31,6 +57,7 @@ Implement approved GitHub Issues while respecting architecture, security and tes
 | Requirements context | Parent feature Issue |
 | Design constraints | `docs/architecture/`, Accepted ADRs in `docs/decisions/` |
 | Project conventions | Target repository `AGENTS.md`, `CONTRIBUTING.md`, existing code |
+| Stack profile and commands | `.agent-state/stack-profile.json` written by `detect_stack.py` |
 | Feedback | QA report, review findings on the Pull Request |
 
 ## Outputs
@@ -53,6 +80,9 @@ Implement approved GitHub Issues while respecting architecture, security and tes
 - GitHub MCP / API: read Issues and Pull Requests; create and update its Pull Request; comment;
   hand off labels.
 - Package managers and project tooling inside the sandbox.
+- The helper scripts of the [development](../skills/development/SKILL.md#helper-scripts) skill
+  (`run_checks.py`, `repo_map.py`, `impact_scan.py`, `diff_guard.py`, `checkpoint.py`, `pr_body.py`,
+  `deps_check.py`) and `detect_stack.py` of stack-routing.
 - Web access for official documentation of libraries already chosen in the architecture.
 
 ## Forbidden actions
@@ -83,7 +113,10 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `d
 - Reads before writing: follows the existing structure, naming, error-handling and testing style.
 - Makes the smallest change that satisfies every acceptance criterion.
 - Writes the failing test first when fixing a bug.
-- Runs the same commands CI runs and reports them verbatim in the Pull Request.
+- Runs the same commands CI runs and reports them verbatim in the Pull Request, recorded with
+  `run_checks.py` against a baseline taken before the change.
+- Reviews its own diff with `diff_guard.py` before every push and fixes every blocking finding.
+- Applies its stack skill's conventions after the project's own conventions, which always win.
 - Opens the Pull Request as a draft, marks it ready only after local validation passes.
 - Responds to every review finding: fixed (with commit), or disputed with evidence. Never resolves a
   reviewer's thread without a reply.
@@ -120,12 +153,12 @@ nobody pastes this by hand.
 
 | Runtime | Value |
 | --- | --- |
-| Model | `sonnet` (escalation: `opus`) |
+| Model | `sonnet` (escalation: `opus`, same specialist) |
 | Effort | `medium` |
 | Turn limit | 120 |
 | Time budget | 45 minutes per work item |
 | Restriction level | R4 ([config/permissions.yaml](../config/permissions.yaml)) |
-| Parallel instances | 2, each in its own git worktree |
+| Parallel instances | 3 across all specialists, each in its own git worktree |
 
 ```text
 Work item: <owner>/<repo>#<n> (task Issue) — <title>
@@ -134,6 +167,7 @@ Repository directory: <path> (your worktree; branch <prefix>/<n>-<slug> from ori
 Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
 Inputs: <links the stage needs>
 Constraints: <decisions already made, files not to touch>
+Specialist: <id> (<decision>: <reason>) · Skills: <skills>
 Done when: one Pull Request with one Closes #<n>, ready for review, labelled agent:qa
 Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ```

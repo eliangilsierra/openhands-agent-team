@@ -1,0 +1,47 @@
+# Unit tests, Android Lint and debug build for an Android app for a project worked on by the agent team.
+# Copy to .github/workflows/ci.yml of the project (humans add workflow files) and mark the job
+# "ci" as a required status check of main. Adjust the commands to the project; they should match the
+# commands detect_stack.py reports (skills/stack-routing), so developers run locally what CI runs.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Lint
+        run: ./gradlew lintDebug
+
+      - name: Assemble
+        run: ./gradlew assembleDebug

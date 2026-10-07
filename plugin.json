@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "openhands-agent-team",
-  "version": "0.1.0",
-  "description": "Operational skills for the OpenHands AI engineering team: product management, research, architecture, planning, development, testing, code review, security review and orchestration.",
+  "version": "0.2.0",
+  "description": "Operational skills for the OpenHands AI engineering team: product management, research, architecture, planning, development with helper scripts, stack routing, ten stack skills (TypeScript, React, Next.js, Angular, Vue, Java/Spring Boot, Kotlin/Android, Python, Go, .NET), testing, code review, security review and orchestration.",
   "license": "Apache-2.0"
 }

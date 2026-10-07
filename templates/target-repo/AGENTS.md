@@ -4,6 +4,9 @@
 
 ## Project facts
 
+Generate this section with `detect_stack.py . --format md` (team repository,
+`skills/stack-routing/scripts/`) and correct anything it could not detect.
+
 - Stack: <language, framework, build tool>
 - Install: `<command>`
 - Lint: `<command>`
@@ -42,11 +45,11 @@ rules most often broken:
 | product-manager | product-management |
 | researcher | research |
 | architect | architecture, research |
-| planner | planning |
-| developer | development, testing |
+| planner | planning, stack-routing |
+| developer (generalist or the stack specialist the coordinator chose: developer-typescript, developer-react, developer-nextjs, developer-angular, developer-vue, developer-java-spring, developer-kotlin-android, developer-python, developer-go, developer-dotnet) | development, testing and the stack skill of the module (`stack-*`) |
 | qa-engineer | testing |
 | code-reviewer | code-review |
 | security-reviewer | security-review |
-| orchestrator | orchestration |
+| orchestrator | orchestration, stack-routing |
 
 The coordinator gives your role and work item in the brief. Use only the skills of your row.

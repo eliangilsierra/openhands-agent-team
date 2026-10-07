@@ -48,6 +48,8 @@ Coordinate the other agents and maintain workflow state.
 ## Required skills
 
 - [orchestration](../skills/orchestration/SKILL.md)
+- [stack-routing](../skills/stack-routing/SKILL.md) — to profile the repository and choose the
+  Developer specialist of each task.
 
 ## Allowed tools
 

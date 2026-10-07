@@ -87,7 +87,7 @@ Nine roles, each an Agent Profile with a role file and one or more Skills:
 | [Researcher](../agents/researcher.md) | Subagent · sonnet | research |
 | [Architect](../agents/architect.md) | Subagent · opus | architecture |
 | [Planner](../agents/planner.md) | Subagent · sonnet | planning |
-| [Developer](../agents/developer.md) | Subagent · sonnet | in-development |
+| [Developer](../agents/developer.md) (generalist + 10 stack specialists, ADR-0003) | Subagents · sonnet | in-development |
 | [QA Engineer](../agents/qa-engineer.md) | Subagent · haiku | bug-reproduction, qa |
 | [Code Reviewer](../agents/code-reviewer.md) | Subagent · sonnet | code-review |
 | [Security Reviewer](../agents/security-reviewer.md) | Subagent · sonnet | security-review |

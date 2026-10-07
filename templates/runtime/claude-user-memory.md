@@ -29,6 +29,14 @@ variable). Its `AGENTS.md` is the contract; read it with `gh api` when you need 
 - `.agent-state/` at that root holds the team board, checkpoints and heartbeats. It is excluded from
   git and mirrored to GitHub comments.
 
+## Skills and scripts
+
+Skills are installed in `$HOME/.claude/skills/<name>/`. Their helper scripts run with Python 3.10+
+and no packages, for example
+`python "$HOME/.claude/skills/stack-routing/scripts/detect_stack.py" . --out .agent-state/stack-profile.json`.
+The Developer role runs as the generalist `developer` or as the stack specialist the coordinator
+chooses with `select_specialist.py` (skill `stack-routing`).
+
 ## GitHub authentication
 
 Authenticate git with `$GITHUB_TOKEN` without writing it to disk:
