@@ -160,6 +160,9 @@ agents:
       hard: [main protection, merge approval, secret scope]
       soft: [no branch writes, ai-ready only after readiness checklist]
 
+  # Applies to the generalist "developer" and to every stack specialist in
+  # config/specialists.yaml (ADR-0003): specialists are runtime variants of this
+  # role and never receive a wider boundary. The hooks give them R4 by name only.
   developer:
     restriction_level: R4
     repository_read: true

@@ -12,6 +12,13 @@
 # "agents" lists the agents that must load the Skill (their primary procedure).
 # "consumers" lists agents that read the Skill to understand or check the
 # outputs produced with it, without executing its procedure.
+# "specialists" lists the Developer stack specialists of config/specialists.yaml
+# that preload the Skill (stack-* Skills, ADR-0003). Reviewers and QA load the
+# stack Skill of the modules a Pull Request touches.
+#
+# A Skill directory may also hold scripts/ (Python 3.10+, standard library only,
+# tested under tests/) and references/ (loaded on demand), following the Agent
+# Skills progressive-disclosure layout.
 
 schema_version: 1
 
@@ -43,6 +50,13 @@ skills:
     agents: [planner]
     consumers: [developer, orchestrator]
     templates: [templates/implementation-plan.md]
+
+  stack-routing:
+    path: skills/stack-routing/SKILL.md
+    purpose: Detect a repository's stacks and commands and choose the Developer specialist for each task.
+    agents: [planner, orchestrator]
+    consumers: [developer]
+    templates: []
 
   development:
     path: skills/development/SKILL.md
@@ -77,4 +91,84 @@ skills:
     purpose: Route work between agents, keep workflow state in GitHub consistent and escalate blocked work to humans.
     agents: [orchestrator]
     consumers: []
+    templates: []
+
+  stack-typescript:
+    path: skills/stack-typescript/SKILL.md
+    purpose: Senior TypeScript and Node.js conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-typescript, developer-react, developer-angular, developer-vue]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-react:
+    path: skills/stack-react/SKILL.md
+    purpose: Senior React and React Native conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-react, developer-nextjs]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-nextjs:
+    path: skills/stack-nextjs/SKILL.md
+    purpose: Senior Next.js (App Router, Server Components, caching) conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-nextjs]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-angular:
+    path: skills/stack-angular/SKILL.md
+    purpose: Senior Angular conventions (standalone, signals, RxJS), anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-angular]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-vue:
+    path: skills/stack-vue/SKILL.md
+    purpose: Senior Vue and Nuxt conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-vue]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-java-spring:
+    path: skills/stack-java-spring/SKILL.md
+    purpose: Senior Java and Spring Boot conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-java-spring]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-kotlin-android:
+    path: skills/stack-kotlin-android/SKILL.md
+    purpose: Senior Kotlin, Android and Jetpack Compose conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-kotlin-android]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-python:
+    path: skills/stack-python/SKILL.md
+    purpose: Senior Python (FastAPI, Django, packaging, typing) conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-python]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-go:
+    path: skills/stack-go/SKILL.md
+    purpose: Senior Go conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-go]
+    consumers: [developer, qa-engineer, code-reviewer]
+    templates: []
+
+  stack-dotnet:
+    path: skills/stack-dotnet/SKILL.md
+    purpose: Senior C# and ASP.NET Core conventions, anti-patterns, testing and commands.
+    agents: []
+    specialists: [developer-dotnet]
+    consumers: [developer, qa-engineer, code-reviewer]
     templates: []
