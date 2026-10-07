@@ -16,6 +16,20 @@ export const LEVELS = {
   'qa-engineer': 'R1',
   'code-reviewer': 'R1',
   'security-reviewer': 'R1',
+  // Developer stack specialists (ADR-0003) inherit the Developer's level. Any other "developer-*"
+  // name is unknown and therefore read-only.
+  // BEGIN GENERATED SPECIALISTS (scripts/generate_runtime.py from config/specialists.yaml)
+  'developer-typescript': 'R4',
+  'developer-react': 'R4',
+  'developer-nextjs': 'R4',
+  'developer-angular': 'R4',
+  'developer-vue': 'R4',
+  'developer-java-spring': 'R4',
+  'developer-kotlin-android': 'R4',
+  'developer-python': 'R4',
+  'developer-go': 'R4',
+  'developer-dotnet': 'R4',
+  // END GENERATED SPECIALISTS
 };
 
 export const BRANCH_PREFIXES = { R3: ['docs/'], R4: ['feature/', 'bugfix/', 'refactor/', 'chore/'] };

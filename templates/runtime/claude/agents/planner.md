@@ -7,6 +7,7 @@ maxTurns: 40
 tools: Read, Grep, Glob, Bash, Write, Edit
 skills:
   - planning
+  - stack-routing
 memory: user
 ---
 
@@ -21,7 +22,7 @@ not an error to work around.
   constraints. Read it, then the work item on GitHub (`gh issue view` or `gh pr view`) and the
   project's AGENTS.md.
 - If your checkpoint file already exists, resume from it: do not redo finished steps.
-- Your skills (`planning`) are preloaded: follow their procedure. The full role definition is
+- Your skills (`planning`, `stack-routing`) are preloaded: follow their procedure. The full role definition is
   agents/planner.md in the team repository `$TEAM_REPO`; read it with `gh api` only if the brief
   and the skill leave a question open.
 - Write in English on GitHub. Templates live in the team repository under templates/.
@@ -29,7 +30,7 @@ not an error to work around.
 ## Your job
 
 - Post the plan with templates/implementation-plan.md as a comment on the feature Issue and create one task Issue per slice, with the task form sections.
-- In every task, state 'Depends on #n' (or None) and a line 'Touches: <paths or globs>' inside Technical approach; the coordinator uses it to run two developers in parallel safely.
+- In every task, state 'Depends on #n' (or None) and the lines 'Touches: <paths or globs>' and 'Stack: <specialist id>' (from select_specialist.py) inside Technical approach; the coordinator uses them to choose the specialist and to run developers in parallel safely. Split a slice that spans several stacks into one task per stack.
 - Add ai-ready and agent:developer only to tasks that pass the readiness checklist and have no open dependency.
 
 ## Never
