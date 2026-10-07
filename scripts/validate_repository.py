@@ -104,6 +104,27 @@ REQUIRED_FILES = [
     "config/skills.yaml",
     "config/workflow.yaml",
     "config/permissions.yaml",
+    "config/specialists.yaml",
+    "docs/decisions/ADR-0003-stack-specialist-developers.md",
+    "scripts/generate_runtime.py",
+    "skills/stack-routing/SKILL.md",
+    "skills/stack-routing/specialists.json",
+    "skills/stack-routing/scripts/detect_stack.py",
+    "skills/stack-routing/scripts/select_specialist.py",
+    "skills/development/scripts/run_checks.py",
+    "skills/development/scripts/diff_guard.py",
+    "skills/development/scripts/repo_map.py",
+    "skills/development/scripts/impact_scan.py",
+    "skills/development/scripts/checkpoint.py",
+    "skills/development/scripts/pr_body.py",
+    "skills/development/scripts/deps_check.py",
+    "tests/helpers.py",
+    "templates/target-repo/ci/java-maven.yml",
+    "templates/target-repo/ci/java-gradle.yml",
+    "templates/target-repo/ci/android.yml",
+    "templates/target-repo/ci/python.yml",
+    "templates/target-repo/ci/go.yml",
+    "templates/target-repo/ci/dotnet.yml",
 ]
 
 REQUIRED_DIRS = ["agents", "skills", "docs", "docs/decisions", "templates",
@@ -198,9 +219,12 @@ SOURCE_EXTENSIONS = {
     ".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".go", ".java", ".rb", ".php", ".cs",
     ".rs", ".c", ".h", ".cpp", ".hpp", ".kt", ".swift", ".scala", ".sh", ".ps1", ".vue", ".svelte",
 }
-ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py", "scripts/test_workflows.mjs"}
+ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py", "scripts/test_workflows.mjs", "scripts/generate_runtime.py"}
 # Operational runtime files (ADR-0002): Claude Code hooks installed in ~/.claude/hooks of the runtime.
-ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/",)
+# Unit tests and their fixture repositories (ADR-0003).
+ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/", "tests/")
+# Skill helper scripts (ADR-0003): skills/<name>/scripts/*.py, Python standard library only.
+SKILL_SCRIPT = re.compile(r"^skills/[a-z0-9-]+/scripts/[a-z0-9_]+\.py$")
 
 MODELS = {"haiku", "sonnet", "opus"}
 EFFORTS = {"low", "medium", "high", "xhigh", "max"}
@@ -764,7 +788,8 @@ def check_runtime(report: Report, agents_cfg: dict) -> None:
             report.error(f"{rel(path)}: subagents must not spawn subagents (remove the Agent tool)")
         if "STATUS:" not in read(path) or "CHECKPOINT:" not in read(path):
             report.error(f"{rel(path)}: must define the result contract")
-    extra = {p.stem for p in (runtime_dir / "agents").glob("*.md")} - set(agents)
+    specialists = set((load_yaml(ROOT / "config" / "specialists.yaml") or {}).get("specialists", {}))
+    extra = {p.stem for p in (runtime_dir / "agents").glob("*.md")} - set(agents) - specialists
     if extra:
         report.error(f"templates/runtime/claude/agents: definitions without a team agent: {sorted(extra)}")
 
@@ -779,6 +804,73 @@ def check_runtime(report: Report, agents_cfg: dict) -> None:
         report.error("templates/runtime/claude/settings.json: autoMemoryEnabled must be true (subagent memory)")
     if settings.get("env", {}).get("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH") != "1":
         report.error("templates/runtime/claude/settings.json: CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH must be '1'")
+
+
+def check_specialists(report: Report, agents_cfg: dict, skills_cfg: dict) -> None:
+    """Developer stack specialists agree with the role, the skills, the hooks and the generated files (ADR-0003)."""
+    where = "config/specialists.yaml"
+    cfg = load_yaml(ROOT / "config" / "specialists.yaml") or {}
+    agents = agents_cfg.get("agents", {})
+    skills = skills_cfg.get("skills", {})
+    base = cfg.get("base_role")
+    specialists = cfg.get("specialists", {})
+    routing = cfg.get("routing", {})
+    if base != "developer" or base not in agents:
+        report.error(f"{where}: base_role must be the developer agent of config/agents.yaml")
+    if agents.get(base, {}).get("specialists") != where:
+        report.error(f"config/agents.yaml:{base}: specialists must point to {where}")
+    if base not in specialists:
+        report.error(f"{where}: the base role '{base}' must be listed as the generalist specialist")
+    if routing.get("fallback") != base:
+        report.error(f"{where}: routing.fallback must be '{base}'")
+    owners: dict[str, str] = {}
+    for spec_id, spec in specialists.items():
+        if spec_id != base and not re.fullmatch(r"developer-[a-z0-9]+(-[a-z0-9]+)*", spec_id):
+            report.error(f"{where}: specialist id '{spec_id}' must be 'developer-<kebab-case>'")
+        for key in ("title", "expertise", "stacks", "skills"):
+            if key not in spec:
+                report.error(f"{where}:{spec_id}: missing '{key}'")
+        for skill in spec.get("skills", []):
+            if skill not in skills:
+                report.error(f"{where}:{spec_id}: skill '{skill}' is not in config/skills.yaml")
+            elif spec_id not in skills[skill].get("specialists", []):
+                report.error(f"config/skills.yaml:{skill}: specialists must list '{spec_id}'")
+        for stack in spec.get("stacks", []):
+            if stack in owners:
+                report.error(f"{where}: stack '{stack}' belongs to both {owners[stack]} and {spec_id}")
+            owners[stack] = spec_id
+        if spec_id != base and not spec.get("stacks"):
+            report.error(f"{where}:{spec_id}: a specialist needs at least one stack key")
+        unknown = set(spec.get("runtime") or {}) - {"model", "effort", "max_turns"}
+        if unknown:
+            report.error(f"{where}:{spec_id}: runtime may only override model, effort and max_turns, not {sorted(unknown)}")
+    priority = routing.get("priority", [])
+    if set(priority) != set(owners) or len(priority) != len(set(priority)):
+        report.error(f"{where}: routing.priority must list every stack key exactly once "
+                     f"(missing {sorted(set(owners) - set(priority))}, unowned {sorted(set(priority) - set(owners))})")
+    for skill_id, skill in skills.items():
+        for spec_id in skill.get("specialists", []):
+            if skill_id not in specialists.get(spec_id, {}).get("skills", []):
+                report.error(f"config/skills.yaml:{skill_id}: '{spec_id}' does not load this skill in {where}")
+        if skill_id.startswith("stack-") and skill_id != "stack-routing" and not skill.get("specialists"):
+            report.error(f"config/skills.yaml:{skill_id}: a stack skill must be preloaded by at least one specialist")
+
+    lib = read(ROOT / "templates" / "runtime" / "claude" / "hooks" / "lib.mjs")
+    lib_levels = dict(re.findall(r"^\s*'?([a-z-]+)'?:\s*'(R[0-4])',", lib, re.MULTILINE))
+    level = (agents.get(base, {}).get("runtime") or {}).get("restriction_level")
+    for spec_id in specialists:
+        if spec_id != base and lib_levels.get(spec_id) != level:
+            report.error(f"templates/runtime/claude/hooks/lib.mjs: LEVELS['{spec_id}'] must be {level}")
+    for doc in ("docs/subagents.md", "agents/developer.md"):
+        text = read(ROOT / doc)
+        for spec_id in specialists:
+            if f"`{spec_id}`" not in text:
+                report.error(f"{doc}: does not document the specialist `{spec_id}`")
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import generate_runtime  # noqa: E402  (same repository, needs PyYAML like this script)
+    for problem in generate_runtime.check():
+        report.error(f"{problem} (run python scripts/generate_runtime.py)")
 
 
 def check_adrs(report: Report) -> None:
@@ -838,7 +930,7 @@ def check_hygiene(report: Report, files: list[Path]) -> None:
         if FORBIDDEN_FILE_NAMES.search(name):
             report.error(f"{name}: secret-bearing file type must never be committed")
         if path.suffix.lower() in SOURCE_EXTENSIONS and name not in ALLOWED_SOURCE_FILES \
-                and not name.startswith(ALLOWED_SOURCE_PREFIXES):
+                and not name.startswith(ALLOWED_SOURCE_PREFIXES) and not SKILL_SCRIPT.match(name):
             report.error(f"{name}: application source code is not allowed in this repository")
         if path.suffix.lower() not in TEXT_EXTENSIONS and path.name not in ("LICENSE", "CODEOWNERS",
                                                                            ".gitignore", ".gitattributes"):
@@ -903,6 +995,10 @@ def main() -> int:
     before = len(report.errors)
     check_runtime(report, agents_cfg)
     report.section("Runtime: subagents, hooks and settings match config/agents.yaml", before)
+
+    before = len(report.errors)
+    check_specialists(report, agents_cfg, skills_cfg)
+    report.section("Developer specialists: catalogue, skills, hooks and generated files agree", before)
 
     before = len(report.errors)
     check_conventions(report)

@@ -1,0 +1,14 @@
+{
+  "name": "shop-web",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {"next": "15.0.3", "react": "19.0.0", "react-dom": "19.0.0"},
+  "devDependencies": {"typescript": "^5.6.3", "vitest": "^2.1.4", "eslint": "^9.14.0", "@testing-library/react": "^16.0.1"}
+}

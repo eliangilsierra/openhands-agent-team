@@ -11,6 +11,7 @@
 #   - no secrets, secret-bearing files, placeholder markers or application source code
 #   - Markdown style (markdownlint) and workflow syntax (actionlint)
 #   - mocked-event tests of the pull request scripts, the Claude Code hook tests and shellcheck
+#   - generated runtime files are up to date and the Python unit tests of the skill scripts pass
 
 name: validate-repository
 
@@ -48,6 +49,12 @@ jobs:
 
       - name: Validate structure, configuration, links and secrets
         run: python scripts/validate_repository.py
+
+      - name: Check generated runtime files
+        run: python scripts/generate_runtime.py --check
+
+      - name: Unit tests of the skill scripts, the generator and the validator
+        run: python -m unittest discover -s tests -v
 
       - name: Set up Node.js
         uses: actions/setup-node@v7

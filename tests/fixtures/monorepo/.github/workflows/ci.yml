@@ -1,0 +1,13 @@
+name: ci
+on: [pull_request]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm ci
+      - name: Test web
+        run: |
+          npm run lint --workspace web
+          npm test --workspace web
+      - run: mvn -B verify
+        working-directory: services/orders
