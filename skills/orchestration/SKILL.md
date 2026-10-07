@@ -44,6 +44,10 @@ person writes one of:
    feature Issue and the "Checkpoint" comments. If `.agent-state/paused.json` exists, the last run
    stopped on an API or usage-limit error: resume from the checkpoints and delete the marker.
 3. For a new request, create the board with one row per work item as soon as it exists.
+4. Profile the repository once per run with skill [stack-routing](../stack-routing/SKILL.md):
+   `detect_stack.py . --out .agent-state/stack-profile.json`. Refresh it after a merge that changed
+   build files. Record `summary.specialists` on the board header so the person sees which specialists
+   the project needs.
 
 ### 2. The board
 
@@ -54,7 +58,7 @@ person writes one of:
 | Item | Type | State | Owner | Agent id | Model | Started | Attempt | Waiting on | Touches |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | #42 | feature | planning | planner | a1b2 | sonnet | 10:02 | 1 | — | — |
-| #43 | task | in-development | developer | c3d4 | sonnet | 10:20 | 1 | — | src/timer/** |
+| #43 | task | in-development | developer-react | c3d4 | sonnet | 10:20 | 1 | — | src/timer/** |
 | #48 | PR | awaiting-human-approval | human | — | — | 11:05 | — | merge | — |
 ```
 
@@ -67,10 +71,14 @@ Repeat until every item is done or waiting on a human:
    - new request → `product-manager`; research only when the requirements list open questions that
      block a decision; `architect` unless the architecture `skip_when` rule clearly applies;
    - requirements (and accepted ADRs) ready → `planner`;
-   - `ai-ready` tasks → `developer`, within the parallelism rules;
+   - `ai-ready` tasks → the Developer specialist chosen by
+     `select_specialist.py --profile .agent-state/stack-profile.json --issue <n>` (`developer-react`,
+     `developer-java-spring`, ...; the generalist `developer` on `fallback`), within the parallelism
+     rules. A `split` decision sends the task back to `planner` with the candidates instead;
    - new or updated pull request → `qa-engineer`; QA `PASS` → `code-reviewer` and `security-reviewer`
      **in parallel**; both `NO BLOCKING FINDINGS` → add `needs-human` (human gate: merge);
-   - `changes-requested` or QA `FAIL` → the same `developer` branch again (cycle + 1, maximum 3).
+   - `changes-requested` or QA `FAIL` → the same specialist on the same branch again (cycle + 1,
+     maximum 3).
 3. Delegate every stage that is ready, up to the limits, with a brief (step 4). Run independent
    subagents in the background and keep scheduling while they work.
 4. When a subagent returns, read its result contract, verify the artifact exists on GitHub
@@ -90,6 +98,7 @@ Repository directory: <path> (developers: your worktree; create branch <prefix>/
 Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
 Inputs: <links to requirements, ADRs, plan, QA report, review findings>
 Constraints: <touches, what not to change, decisions already made>
+Specialist: <id> (<decision>: <reason>) · Skills: <skills>   (developers only, from select_specialist.py)
 Done when: <the stage's Definition of Done in one or two lines>
 Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ```
@@ -97,8 +106,9 @@ Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ### 5. Parallelism
 
 - At most 4 subagents at the same time.
-- Developers: at most 2, only for tasks with no unmet dependency and **disjoint `Touches:`** sets; each
-  in its own worktree and branch.
+- Developers: at most 3 (the generalist and every specialist together), only for tasks with no unmet
+  dependency and **disjoint `Touches:`** sets; each in its own worktree and branch. Two tasks of the
+  same specialist may run at the same time as two instances.
 - Code reviewer and security reviewer run in parallel on the same pull request after QA `PASS`.
 - Researchers: up to 3 on independent questions.
 - Never in parallel: product definition, architecture and planning of the same feature; two agents on
@@ -176,7 +186,8 @@ exact word to resume (`continúa`). Never report a stage as done without its art
 **Situation:** feature #42 has requirements and an accepted ADR. The planner created tasks #43 (touches
 `src/timer/**`, no dependencies), #44 (touches `src/routines/**`, no dependencies) and #45 (depends on #43).
 
-**Action:** delegate #43 and #44 to two `developer` subagents in parallel (different worktrees, disjoint
-touches); keep #45 waiting. When PR #50 for #43 arrives, run `qa-engineer`; on `PASS`, run
+**Action:** `select_specialist.py` returns `developer-react` for #43 and `developer-java-spring` for #44
+(both `single`); delegate them in parallel (different worktrees, disjoint touches) with the
+`Specialist:` line in each brief; keep #45 waiting. When PR #50 for #43 arrives, run `qa-engineer`; on `PASS`, run
 `code-reviewer` and `security-reviewer` together; both clean → add `needs-human` to PR #50 and continue
 with #44. When the person merges #50 and writes `continúa`, delegate #45.

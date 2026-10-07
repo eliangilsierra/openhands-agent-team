@@ -43,9 +43,14 @@ criteria say and whether it breaks anything that worked before.
 
    For each `AC` add: the main case, at least one negative case and the relevant boundaries.
 3. **Prepare.** Check out the PR branch in the sandbox, install dependencies with the lockfile,
-   start required local services (never shared or production ones).
+   start required local services (never shared or production ones). The stack profile
+   (`detect_stack.py`, see [stack-routing](../stack-routing/SKILL.md)) gives each module's install,
+   lint, type-check, test and build commands; the stack skill of the module (`stack-*`) lists the
+   test levels and pitfalls of that stack.
 4. **Execute.** Run every check. Record the exact command, the relevant output (trimmed, never
-   paraphrased into something it did not say), and the result. For manual/E2E checks record the
+   paraphrased into something it did not say), and the result. `run_checks.py` (development skill
+   scripts) runs the module's commands and prints the evidence rows; it does not replace checks
+   derived from the acceptance criteria. For manual/E2E checks record the
    steps, input data, expected and observed result; capture screenshots or response bodies when
    useful.
 5. **Classify** each check:

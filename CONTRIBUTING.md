@@ -17,7 +17,10 @@ branch, a Pull Request, deterministic validation and human review.
 
    ```bash
    python -m pip install pyyaml
+   python scripts/generate_runtime.py --check
    python scripts/validate_repository.py
+   python -m unittest discover -s tests
+   node templates/runtime/claude/hooks/test-hooks.mjs
    npx --yes markdownlint-cli2@0.23.3 "**/*.md"
    ```
 
@@ -46,12 +49,41 @@ branch, a Pull Request, deterministic validation and human review.
    [agents/README.md](agents/README.md) and [docs/architecture.md](docs/architecture.md).
 8. If it needs a new label, add it to `config/workflow.yaml` and the label commands in
    [docs/github-integration.md](docs/github-integration.md#2-labels).
-9. Add its `runtime` block in `config/agents.yaml`, create its subagent file in
-   `templates/runtime/claude/agents/<id>.md` (frontmatter must match `runtime`), add it to `LEVELS` in
+9. Add its `runtime` and `subagent` blocks in `config/agents.yaml`, run
+   `python scripts/generate_runtime.py` to create its subagent file in
+   `templates/runtime/claude/agents/<id>.md`, add it to `LEVELS` in
    `templates/runtime/claude/hooks/lib.mjs`, and update the catalogue in
    [docs/subagents.md](docs/subagents.md).
 10. Run the validator and `node templates/runtime/claude/hooks/test-hooks.mjs`. In the PR, list the
     runtime files to reinstall in the `~/.claude` volume.
+
+## Adding or changing a Developer specialist
+
+Specialists are variants of the Developer role (ADR-0003), not new roles: no new label, state or
+permission entry.
+
+1. Add or change the entry in [config/specialists.yaml](config/specialists.yaml): id
+   `developer-<kebab>`, title, expertise, the stack keys it owns and its skills. Add new stack keys to
+   `routing.priority` in the right place (more specific frameworks first).
+2. If the stack is new, teach `skills/stack-routing/scripts/detect_stack.py` to report its key, add a
+   fixture repository under `tests/fixtures/` and a test in `tests/test_detect_stack.py`.
+3. Create or update `skills/stack-<name>/SKILL.md` (all Skill sections, senior conventions,
+   anti-patterns, testing, commands, review checklist) with deep material in `references/`, and
+   register it in [config/skills.yaml](config/skills.yaml) with `agents: []` and `specialists`.
+4. Run `python scripts/generate_runtime.py`: it writes the subagent file, `specialists.json` and the
+   specialist block of `hooks/lib.mjs`. Never edit those by hand.
+5. Document the specialist in the tables of [agents/developer.md](agents/developer.md),
+   [docs/subagents.md](docs/subagents.md#3-developer-specialists) and [README.md](README.md); the
+   validator checks the first two.
+6. Run the validation below. In the PR, list the runtime files to reinstall.
+
+## Adding a helper script
+
+- Place it in `skills/<skill>/scripts/<name>.py`: Python 3.10+, standard library only, a docstring
+  with usage, `main(argv)` returning an exit code, no network unless it is the script's purpose, and
+  never print secret values.
+- Add unit tests in `tests/` (fixtures under `tests/fixtures/`), and document the script in the
+  Skill's procedure.
 
 ## Modifying an agent
 
@@ -119,7 +151,8 @@ changes.
 - All template sections completed.
 - Terminology from `config/workflow.yaml` used exactly (states, labels, severities, QA results,
   review outcomes, research classifications).
-- No application source code. The only executable file is the validator in `scripts/`.
+- No application source code. Executable files are limited to `scripts/` (validator, generator,
+  workflow tests), the runtime hooks, `skills/<name>/scripts/*.py` and `tests/`.
 - No secrets ([SECURITY.md](SECURITY.md)).
 
 ## Validation requirements
@@ -137,6 +170,9 @@ The [validate-repository](.github/workflows/validate-repository.yml) workflow mu
 | Shared vocabulary | `scripts/validate_repository.py` |
 | `plugin.json` schema, name and version | `scripts/validate_repository.py` |
 | Secret patterns, secret-bearing files, placeholder markers, application source | `scripts/validate_repository.py` |
+| Generated runtime files match `config/` | `scripts/generate_runtime.py --check` (also run by the validator) |
+| Developer specialists agree with skills, hooks and docs | `scripts/validate_repository.py` |
+| Unit tests of the skill scripts, generator and validator | `python -m unittest discover -s tests` |
 | Markdown style | `markdownlint-cli2` with [.markdownlint-cli2.yaml](.markdownlint-cli2.yaml) |
 | Workflow syntax | `actionlint` |
 

@@ -16,7 +16,7 @@ flowchart TB
         rs[researcher x3]
         ar[architect]
         pl[planner]
-        dev[developer x2<br/>own worktrees]
+        dev[developer specialists x3<br/>own worktrees]
         qa[qa-engineer]
         cr[code-reviewer]
         sr[security-reviewer]
@@ -45,7 +45,7 @@ validator checks that they agree.
 | researcher | sonnet | medium | 40 | 20 | opus | R1 | 3 |
 | architect | opus | high | 60 | 30 | — (failure → `needs-human`) | R3 | 1 |
 | planner | sonnet | high | 40 | 15 | opus | R2 | 1 |
-| developer | sonnet | medium | 120 | 45 | opus | R4 | 2 (worktrees) |
+| developer (and its 10 specialists, section 3) | sonnet | medium | 120 | 45 | opus | R4 | 3 in total (worktrees) |
 | qa-engineer | haiku | medium | 50 | 20 | sonnet | R1 | 2 |
 | code-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
 | security-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
@@ -61,7 +61,75 @@ NEXT: what the coordinator should do next
 CHECKPOINT: .agent-state/items/<n>.md
 ```
 
-## 3. Restriction levels and harness
+## 3. Developer specialists
+
+The Developer role runs as the generalist `developer` or as one of ten stack specialists
+([ADR-0003](decisions/ADR-0003-stack-specialist-developers.md)). They are variants of one role: same
+label, states, permissions (R4), limits and Definition of Done; they differ in the stack skills they
+preload and in their memory. The catalogue is [config/specialists.yaml](../config/specialists.yaml).
+
+| Subagent | Stack keys it owns | Preloaded stack skills |
+| --- | --- | --- |
+| `developer` | none (fallback, cross-stack tasks that cannot be split) | loads `stack-*` on demand |
+| `developer-typescript` | `node`, `typescript`, `javascript` | `stack-typescript` |
+| `developer-react` | `react`, `react-native` | `stack-react`, `stack-typescript` |
+| `developer-nextjs` | `nextjs` | `stack-nextjs`, `stack-react` |
+| `developer-angular` | `angular` | `stack-angular`, `stack-typescript` |
+| `developer-vue` | `vue` | `stack-vue`, `stack-typescript` |
+| `developer-java-spring` | `spring`, `java` | `stack-java-spring` |
+| `developer-kotlin-android` | `android`, `kotlin` | `stack-kotlin-android` |
+| `developer-python` | `python` | `stack-python` |
+| `developer-go` | `go` | `stack-go` |
+| `developer-dotnet` | `dotnet` | `stack-dotnet` |
+
+**Routing** (skill [stack-routing](../skills/stack-routing/SKILL.md)):
+
+```mermaid
+flowchart LR
+    repo[(Target repository)] -->|manifests, CI| detect[detect_stack.py]
+    detect --> profile[(.agent-state/stack-profile.json)]
+    task[Task Issue<br/>Touches + Stack] --> select[select_specialist.py]
+    profile --> select
+    select -->|single / explicit| spec[developer-&lt;stack&gt;]
+    select -->|split| planner[planner splits the task]
+    select -->|fallback| gen[developer]
+```
+
+1. The coordinator profiles the repository once per run (and after merges that change build files).
+2. The Planner writes `Touches:` and `Stack:` in every task and splits slices that span several stacks.
+3. Before delegating, the coordinator runs `select_specialist.py --issue <n>` and adds a
+   `Specialist:` line to the brief. Escalation re-delegates to the same specialist with the next model.
+
+**Helper scripts** (Python 3.10+, standard library only, tested in `tests/`):
+
+| Script | Skill | Purpose |
+| --- | --- | --- |
+| `detect_stack.py` | stack-routing | Modules, stacks, versions, commands and CI steps of a repository |
+| `select_specialist.py` | stack-routing | Specialist for a task from the profile and its `Touches`/`Stack` lines |
+| `run_checks.py` | development | Run lint, type check, tests and build; baseline and regression comparison; PR evidence rows |
+| `repo_map.py` | development | Compact map of files and symbols, focused on the task's paths |
+| `impact_scan.py` | development | Tests related to the change; changed files without tests |
+| `diff_guard.py` | development | Self-review: secrets, weakened tests, scope, conflict markers, debug code |
+| `checkpoint.py` | development | Checkpoint file and its GitHub comment |
+| `pr_body.py` | development | Pull Request body that follows the template with the evidence |
+| `deps_check.py` | development | Licence, maintenance and advisories of a new dependency (deps.dev, OSV.dev) |
+
+**Generated files.** `python scripts/generate_runtime.py` writes every file in
+`templates/runtime/claude/agents/`, `skills/stack-routing/specialists.json` and the specialist block of
+`hooks/lib.mjs` from `config/agents.yaml` and `config/specialists.yaml`; `--check` (run by the
+validator) fails when they drift. Never edit them by hand.
+
+**Optional extras (off by default).** Both need a human decision and a change to the runtime image or
+settings, not to this repository:
+
+- *Code intelligence:* Claude Code's LSP plugins (TypeScript, Java, Kotlin, Python, Go, C#) give
+  go-to-definition, references and type errors after each edit. Install the plugin for each stack
+  from the plugin marketplace and its language server binary in the runtime image.
+- *Current library documentation:* a documentation lookup MCP server or CLI (for example Context7)
+  reduces outdated API usage. It sends library names and queries to an external service, so it is a
+  data-sharing decision; developers already have `WebFetch` for official documentation.
+
+## 4. Restriction levels and harness
 
 | Level | Agents | May write | Blocked by hooks |
 | --- | --- | --- | --- |
@@ -69,7 +137,7 @@ CHECKPOINT: .agent-state/items/<n>.md
 | R1 | researcher, qa-engineer, code-reviewer, security-reviewer | Own memory and `.agent-state/` | Any git write; files elsewhere |
 | R2 | product-manager, planner | Own memory and `.agent-state/` (Issues and comments through `gh`) | Any git write; files elsewhere |
 | R3 | architect | `docs/architecture/`, `docs/decisions/`, `docs/research/` | Pushes other than `docs/*` branches |
-| R4 | developer | Task files in its worktree | `.github/workflows/`, secret files, pushes other than `feature/`, `bugfix/`, `refactor/` or `chore/` branches |
+| R4 | developer and its specialists | Task files in its worktree | `.github/workflows/`, secret files, pushes other than `feature/`, `bugfix/`, `refactor/` or `chore/` branches |
 
 For everyone, the hooks deny: pushes to `main` or `master`, force pushes, `git merge` while on `main`,
 `gh pr merge`, approvals, merge or branch-protection API calls, git identity changes, `--no-verify` and
@@ -86,21 +154,21 @@ as R1.
 | `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` | 4 | Global parallelism cap |
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | 0 | Named subagents stay subagents |
 | `TEAM_REPO` | `<owner>/openhands-agent-team` | Where agents read rules and templates |
-| Hooks | see section 8 | Deterministic limits and state |
+| Hooks | see section 9 | Deterministic limits and state |
 
-## 4. Parallelism
+## 5. Parallelism
 
 | Allowed in parallel | Condition |
 | --- | --- |
 | Up to 3 researchers | Independent questions |
-| 2 developers | No unmet dependency and disjoint `Touches:` sets (declared by the planner), own worktree and branch |
+| 3 developers (any specialists) | No unmet dependency and disjoint `Touches:` sets (declared by the planner), own worktree and branch |
 | code-reviewer with security-reviewer | Same Pull Request, after QA `PASS` |
 | Reviews of one Pull Request while a developer works on another task | Always |
 
 Never in parallel: product definition, architecture and planning of one feature; two agents on one
 branch; a task that depends on an unmerged Pull Request; QA or reviews of an outdated commit.
 
-## 5. Time budgets and model escalation
+## 6. Time budgets and model escalation
 
 Claude Code has no built-in "switch model after N minutes", so the coordinator applies this policy:
 
@@ -114,7 +182,7 @@ Claude Code has no built-in "switch model after N minutes", so the coordinator a
 5. API or usage-limit errors: the `StopFailure` hook writes `.agent-state/paused.json`; the next start
    resumes from the checkpoints.
 
-## 6. Memory and context
+## 7. Memory and context
 
 | Layer | Where | What | Who |
 | --- | --- | --- | --- |
@@ -133,7 +201,7 @@ Context rules:
 - The coordinator keeps only the board and reads full artifacts only to decide a transition.
 - `.agent-state/` is excluded from git by the `SessionStart` hook (`.git/info/exclude`).
 
-## 7. Recovery
+## 8. Recovery
 
 | What stopped | How work continues |
 | --- | --- |
@@ -143,7 +211,7 @@ Context rules:
 | Usage limit or API error | `paused.json` tells the next run to resume from checkpoints |
 | The conversation | A new conversation with `reanuda #<issue>` rebuilds from the GitHub "Team board" and "Checkpoint" comments |
 
-## 8. Validations and preventions
+## 9. Validations and preventions
 
 | Layer | File | Effect |
 | --- | --- | --- |
@@ -161,15 +229,17 @@ Context rules:
 All of them are tested in CI: `node templates/runtime/claude/hooks/test-hooks.mjs` and
 `node scripts/test_workflows.mjs`.
 
-## 9. Token use
+## 10. Token use
 
 - haiku for product management and QA, sonnet by default, opus only for the architect and escalations.
 - Effort per role; only the role's skills preloaded; fewer tools mean fewer tool schemas in context.
 - Short briefs and result contracts; reviewers read `gh pr diff` and the touched files.
 - One clone and one install per conversation; worktrees share the git objects.
 - Code and security reviews in parallel instead of in sequence.
+- Stack knowledge lives in skills preloaded only by the specialist that needs it, with deep
+  `references/` loaded on demand; scripts summarise long command output instead of pasting it.
 
-## 10. Installing the runtime
+## 11. Installing the runtime
 
 Run once per OpenHands deployment, as an administrator. `<VOL>` is the host path of the volume mounted at
 `/home/openhands/.claude` (find it with `findmnt -T ~/.claude` inside the container), and `10001` the
@@ -183,11 +253,13 @@ container user.
      /tmp/team/templates/runtime/claude/githooks /tmp/team/templates/runtime/claude/settings.json <VOL>/
    sudo cp /tmp/team/templates/runtime/claude-user-memory.md <VOL>/CLAUDE.md
    sudo mkdir -p <VOL>/skills && sudo cp -R /tmp/team/skills/*/ <VOL>/skills/
-   sudo chmod 755 <VOL>/githooks/*
+   sudo chmod 755 <VOL>/githooks/* <VOL>/skills/*/scripts/*.py
    sudo chown -R 10001:10001 <VOL>
    ```
 
    Then edit `TEAM_REPO` in `<VOL>/settings.json` (and `<owner>` in `<VOL>/CLAUDE.md` if present) to the real owner.
+   The image needs Python 3.10+ on `PATH` for the skill scripts (no packages). Before copying,
+   `python scripts/generate_runtime.py --check` must pass in the team repository.
 2. In the deployment's environment variables (for example Coolify), activate the git hooks and keep the
    identity variables:
 
@@ -207,7 +279,7 @@ container user.
 5. Check: start a conversation with `team` and write `estado`. The coordinator must answer as
    coordinator and list the subagents.
 
-## 11. Using the team
+## 12. Using the team
 
 | You write | What happens |
 | --- | --- |
@@ -220,10 +292,12 @@ container user.
 The coordinator ends every run with a list of what waits on you (ADR Pull Requests, Pull Requests to
 merge, `needs-human` questions) and what is still running.
 
-## 12. Pilot checklist
+## 13. Pilot checklist
 
 - One message reaches the ADR, and after accepting it the pull requests, without other questions.
-- At most two developers at once, in different worktrees and branches; reviews run in parallel after QA.
+- At most three developers at once, in different worktrees and branches; reviews run in parallel after QA.
+- In a repository with two stacks, each task goes to the specialist `select_specialist.py` names, and the
+  brief carries the `Specialist:` line.
 - Every Pull Request: Conventional Commits, one `Closes`, `pr-conventions` and `ci` green, author is your
   identity, no co-author; nobody merged or pushed to `main`.
 - Verdicts are review comments with headers and the `changes-requested` label when needed; reviewers did
@@ -232,7 +306,7 @@ merge, `needs-human` questions) and what is still running.
   to see escalation.
 - Asking an agent to `git push origin main` or `gh pr merge` is denied by a hook.
 
-## 13. Known limits
+## 14. Known limits
 
 - Whether the ACP adapter loads `~/.claude/agents`, hooks and settings, and supports worktree isolation
   and background subagents, is confirmed in the pilot; skills from `~/.claude/skills` are already loaded.

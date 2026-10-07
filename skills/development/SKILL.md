@@ -17,6 +17,11 @@ with the architecture, free of secrets, and easy to review — without bypassing
 
 Do not use this Skill for tasks that are not `ai-ready`; ask the Planner instead.
 
+The coordinator gives the task to the generalist `developer` or to the stack specialist that owns
+the touched modules (for example `developer-java-spring`, see
+[stack-routing](../stack-routing/SKILL.md)). Every specialist follows this procedure; its stack skill
+adds the stack's conventions on top.
+
 One subagent implements **one** task Issue. Do not continue with another task, with QA or with
 review, even when the remaining tasks look small (AGENTS.md section 16). As a subagent you work in
 your own git worktree, so another developer may be working on a different task at the same time.
@@ -28,7 +33,9 @@ To bring in changes from `main`, merge `origin/main` into your branch; do not re
 
 ## Inputs
 
-- Task Issue (all nine sections) and its parent feature Issue.
+- Task Issue (all nine sections, with its `Touches:` and `Stack:` lines) and its parent feature Issue.
+- The stack profile `.agent-state/stack-profile.json` and the stack skill(s) of the module
+  (`stack-*`, preloaded for specialists).
 - Architecture document and Accepted ADRs referenced by the task.
 - Target repository conventions: `AGENTS.md`, `CONTRIBUTING.md`, README, existing code and tests,
   CI workflows (they define the commands that must pass).
@@ -37,24 +44,51 @@ To bring in changes from `main`, merge `origin/main` into your branch; do not re
 ## Procedure
 
 ```text
-Issue → Understand requirements → Inspect repository → Inspect architecture → Inspect ADRs
-→ Create branch → Implement → Write/update tests → Run tests → Run lint → Run build
-→ Review diff → Commit → Push → Open PR
+Issue → Understand requirements → Profile and baseline → Inspect architecture → Inspect ADRs
+→ Create branch → Implement → Write/update tests → Validate → Review diff → Commit → Push → Open PR
 ```
 
-1. **Issue.** Read the task Issue completely, including comments. Confirm it carries `ai-ready`.
+### Helper scripts
+
+The scripts live in `$HOME/.claude/skills/development/scripts/` (`$S` below) and
+`$HOME/.claude/skills/stack-routing/scripts/` in the runtime. They need Python 3.10+ and no
+packages, never print secret values, and keep long logs out of your context. Store their outputs
+next to your checkpoint (`.agent-state/items/<n>-*.json`).
+
+| Script | Use it to | Typical call |
+| --- | --- | --- |
+| `detect_stack.py` | Learn the module's install, lint, type-check, test and build commands | `python "$HOME/.claude/skills/stack-routing/scripts/detect_stack.py" . --out .agent-state/stack-profile.json` |
+| `run_checks.py` | Run those commands and record evidence; compare with the baseline | `python "$S/run_checks.py" --profile .agent-state/stack-profile.json --module <path> --baseline --out .agent-state/items/<n>-baseline.json` |
+| `repo_map.py` | See the files and symbols of the area you will change | `python "$S/repo_map.py" --focus "<Touches globs>"` |
+| `impact_scan.py` | Find the tests related to your change and changes without tests | `python "$S/impact_scan.py"` |
+| `diff_guard.py` | Review your diff: secrets, weakened tests, scope, debug code | `python "$S/diff_guard.py" --touches "<Touches globs>"` |
+| `checkpoint.py` | Keep the checkpoint and its GitHub comment current | `python "$S/checkpoint.py" --item <n> --done "<step>" --mirror` |
+| `pr_body.py` | Write a complete Pull Request body with the evidence | `python "$S/pr_body.py" --issue <n> --summary "..." --checks ... --out .agent-state/items/<n>-pr.md` |
+| `deps_check.py` | Check licence, maintenance and advisories before adding a dependency | `python "$S/deps_check.py" --ecosystem npm --name <pkg>` |
+
+A script that fails is reported with its output like any other command; it never replaces your
+judgement, and its absence never blocks the task (fall back to the manual step and say so).
+
+### Steps
+
+1. **Issue.** Read the task Issue completely, including comments, and its `Touches:` and `Stack:`
+   lines. Confirm it carries `ai-ready`. Start the checkpoint:
+   `checkpoint.py --item <n> --role Developer --goal "<objective>" --model <model> --attempt <k>`.
 2. **Understand requirements.** Read the parent feature Issue's referenced `FR`/`AC`. Restate the
    objective and acceptance criteria to yourself; list the cases you will test. If something is
    genuinely ambiguous *and* blocks a correct implementation, comment a precise question, add
    `blocked`, and stop. If it is a minor interpretation, proceed and document it in the PR.
-3. **Inspect repository.** Find the code paths involved, their callers and tests. Identify the
-   project's commands for test, lint, type check and build (from CI workflows, `package.json`,
-   `Makefile`, `pyproject.toml`, etc.). Run the test suite once *before* changing anything to know
-   the baseline.
+3. **Profile and baseline.** Use `.agent-state/stack-profile.json` (run `detect_stack.py` if it is
+   missing) to get the module's commands; cross-check them with the CI workflows (`ci_commands`),
+   because CI decides what must pass. Install with the profile's command, then record the baseline
+   **before changing anything**: `run_checks.py --baseline`. Map the area with
+   `repo_map.py --focus "<Touches>"` and read the code paths involved, their callers and tests. Load
+   the stack skill of the module if your preloaded skills do not cover it.
 4. **Inspect architecture.** Read the architecture document sections relevant to the task.
 5. **Inspect ADRs.** Read every ADR referenced by the task and any ADR covering the components you
    touch. Your change must comply; if it cannot, stop and escalate to `agent:architect`.
-6. **Create branch.** From an up-to-date `main`:
+6. **Create branch.** You run in your own git worktree; create the branch there from an up-to-date
+   `origin/main` (never from the worktree's default branch without fetching):
 
    ```bash
    git fetch origin
@@ -69,38 +103,48 @@ Issue → Understand requirements → Inspect repository → Inspect architectur
    | `chore/<issue-number>-<short-description>` | Tooling, dependencies, build, CI |
 
    The branch number is the number of the task Issue you are implementing, not a counter and not a
-   range (`feature/42-login-rate-limit`, never `task/5-11-ui`). Work in the conversation's current
-   working directory: clone the repository there.
+   range (`feature/42-login-rate-limit`, never `task/5-11-ui`). Never clone the repository again or
+   work in another directory: the brief names your worktree.
 
    Never work on `main`. If you find yourself on `main`, stop and switch before any edit.
    Remove the `ai-ready` label from the task Issue (keep `agent:developer`): the task is now
-   `in-development`.
+   `in-development`. Update the checkpoint with the branch.
 7. **Implement.** Make the smallest change that satisfies every acceptance criterion. Follow
-   existing patterns for structure, naming, error handling, logging and configuration. Validate
-   inputs at trust boundaries. Read configuration and secrets from the environment, never hard-code them.
+   existing patterns for structure, naming, error handling, logging and configuration, then the
+   rules of your stack skill. Validate inputs at trust boundaries. Read configuration and secrets
+   from the environment, never hard-code them. Before adding a dependency, run `deps_check.py` and
+   keep its output for the Pull Request.
 8. **Write/update tests.** For each acceptance criterion add or update tests at the level named in
    the task's testing requirements. For a bug, write the failing regression test first, see it
    fail, then fix. Update tests whose expected behaviour legitimately changed and explain why.
-9. **Run tests.** Run the full relevant suite, not only new tests. All must pass.
-10. **Run lint.** Run the project's linters, formatters (in check mode) and type checkers.
-11. **Run build.** Run the production build or package step if the project has one.
-12. **Review diff.** Run `git diff origin/main...HEAD` and check: only task-scoped changes; no
-    secrets, tokens, `.env`, credentials or personal data; no debug prints, commented-out code,
-    stray files or large generated artefacts; error handling present; docs updated.
-13. **Commit.** Small, coherent commits in Conventional Commits form
+   `impact_scan.py` lists the related tests to run first and the changed files without tests.
+9. **Validate.** Run `run_checks.py --compare <baseline> --out .agent-state/items/<n>-checks.json`
+   for lint, format, type check, tests and build. Every check must pass and no regression may appear
+   (fewer tests, more skipped tests, a check that passed before and fails now). A check the module
+   has no command for is reported as `NOT APPLICABLE`, not invented.
+10. **Review diff.** Run `diff_guard.py --touches "<Touches>"` and fix every blocking finding; look
+    at every warning. Then read `git diff origin/main...HEAD` yourself: only task-scoped changes; no
+    secrets, `.env`, credentials or personal data; no debug prints, commented-out code, stray files
+    or large generated artefacts; error handling present; docs updated. Only use `--allow <rule>` for
+    a finding you justify in the Pull Request (for example a test file renamed, not deleted).
+11. **Commit.** Small, coherent commits in Conventional Commits form
     (`<type>(<scope>): <description>`, imperative, under 73 characters), with the Issue reference in
     the Pull Request title or body: `feat(auth): reject login after 5 failed attempts`. Do not change
     the git identity and do not add `Co-Authored-By` trailers.
-14. **Push.** `git push -u origin <branch>`.
-15. **Open PR.** Open a **draft** Pull Request using `.github/pull_request_template.md`, titled in
-    Conventional Commits form (`feat(auth): reject login after 5 failed attempts (#122)`), with
-    exactly one `Closes #<issue>`, the exact validation commands and their results, and any
-    interpretation you made. When CI is green (or failures are proven unrelated), mark it ready, add
-    label `agent:qa`, update your checkpoint and **stop** with the result contract. Do not merge.
+12. **Push.** `git push -u origin <branch>`. Push early: after the first meaningful commit, open the
+    draft Pull Request so the work is never only local. Update the checkpoint with the commit
+    (`checkpoint.py --commit <sha> --mirror`).
+13. **Open PR.** Render the body with `pr_body.py` (it follows
+    `.github/pull_request_template.md`, fills the Tests table from your evidence and ticks only the
+    checklist items the evidence proves; tick the others yourself only when they are true). Open a
+    **draft** Pull Request titled in Conventional Commits form
+    (`feat(auth): reject login after 5 failed attempts (#122)`) with exactly one `Closes #<issue>`.
+    When CI is green (or failures are proven unrelated), mark it ready, add label `agent:qa`, update
+    your checkpoint and **stop** with the result contract. Do not merge.
 
 **Handling feedback.** For each QA `FAIL` or review finding: reproduce it, fix it on the same
 branch in a new commit, and reply in the thread with the commit SHA — or dispute it with
-evidence. Re-run steps 9–12, then move the label back to `agent:qa` (the whole chain QA → Code
+evidence. Re-run steps 8–10, then move the label back to `agent:qa` (the whole chain QA → Code
 Review → Security Review runs again). Never resolve another agent's thread without replying.
 
 ## Rules
@@ -114,7 +158,8 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 - Never commit secrets, credentials, `.env` files or real personal data; use the project's
   example-config convention for new settings.
 - Never add a dependency the architecture or task did not foresee without stating why in the PR;
-  check its licence, maintenance and known vulnerabilities first.
+  check its licence, maintenance and known vulnerabilities first with `deps_check.py` (`REJECT`
+  means choose another version or package; `REVIEW` needs a justification in the PR).
 - Never modify `.github/workflows/` unless the task explicitly requires it.
 - Keep the PR to one task. Note unrelated problems as follow-up suggestions in the PR description.
 - Report validation results exactly as observed. If a command could not be run, say so.
@@ -133,9 +178,11 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 - [ ] Commit messages and the Pull Request title follow Conventional Commits.
 - [ ] The Pull Request has exactly one `Closes #<issue>`.
 - [ ] Every acceptance criterion is implemented and covered by a test.
-- [ ] Baseline tests were run before the change; full suite passes after it.
+- [ ] Baseline was recorded with `run_checks.py --baseline` before the change; the comparison after
+      it shows no regression.
 - [ ] Lint, type checks and build pass.
-- [ ] Diff contains only task-scoped changes; no secrets, debug code or stray files.
+- [ ] `diff_guard.py` reports no blocking finding (or each allowed one is justified in the PR); the
+      diff contains only task-scoped changes.
 - [ ] Public behaviour changes are reflected in documentation.
 - [ ] PR template is complete; validation commands and outputs are listed.
 - [ ] Architecture and ADR compliance stated in the PR.

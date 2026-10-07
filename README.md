@@ -6,7 +6,7 @@ work, *what* they may touch and *how* work flows between them — as reviewable 
 
 It contains **no application code**. It is the configuration, knowledge, process, governance and
 orchestration specification that OpenHands agents follow when they work on your application
-repositories.
+repositories, plus small tested helper scripts that the agents run (Python standard library only).
 
 ## Purpose
 
@@ -66,15 +66,42 @@ Details: [docs/architecture.md](docs/architecture.md) and
 | [Product Manager](agents/product-manager.md) | Ideas → clear, testable requirements | Subagent · haiku | product-management |
 | [Researcher](agents/researcher.md) | Evidence-based research for decisions | Subagent · sonnet | research |
 | [Architect](agents/architect.md) | Simplest sufficient architecture + ADRs | Subagent · opus | architecture, research |
-| [Planner](agents/planner.md) | Requirements + design → small task Issues | Subagent · sonnet | planning |
-| [Developer](agents/developer.md) | Implement `ai-ready` Issues as tested PRs | Subagent · sonnet | development, testing |
+| [Planner](agents/planner.md) | Requirements + design → small task Issues | Subagent · sonnet | planning, stack-routing |
+| [Developer](agents/developer.md) | Implement `ai-ready` Issues as tested PRs, as the generalist or one of ten stack specialists | Subagents · sonnet | development, testing + `stack-*` |
 | [QA Engineer](agents/qa-engineer.md) | Validate acceptance criteria and regressions | Subagent · haiku | testing |
 | [Code Reviewer](agents/code-reviewer.md) | Semantic PR review in twelve dimensions | Subagent · sonnet | code-review |
 | [Security Reviewer](agents/security-reviewer.md) | Find security weaknesses before merge | Subagent · sonnet | security-review |
-| [Orchestrator](agents/orchestrator.md) | Coordinate agents and workflow state | Coordinator (sonnet) | orchestration |
+| [Orchestrator](agents/orchestrator.md) | Coordinate agents and workflow state | Coordinator (sonnet) | orchestration, stack-routing |
 
 All agents inherit the global contract in [AGENTS.md](AGENTS.md). Canonical definitions:
 [config/agents.yaml](config/agents.yaml).
+
+### Developer specialists
+
+The coordinator profiles the target repository (`detect_stack.py`) and gives every task to the
+developer who owns its stack (`select_specialist.py`), so a Spring Boot task is written by a
+Spring Boot specialist and an Angular task by an Angular specialist
+([ADR-0003](docs/decisions/ADR-0003-stack-specialist-developers.md),
+[docs/subagents.md](docs/subagents.md#3-developer-specialists)):
+
+| Specialist | Stacks |
+| --- | --- |
+| `developer-typescript` | TypeScript, JavaScript, Node.js (Express, Fastify, NestJS) |
+| `developer-react` | React, React Native |
+| `developer-nextjs` | Next.js |
+| `developer-angular` | Angular |
+| `developer-vue` | Vue, Nuxt |
+| `developer-java-spring` | Java, Spring Boot |
+| `developer-kotlin-android` | Kotlin, Android, Jetpack Compose, Ktor |
+| `developer-python` | Python, FastAPI, Django, Flask |
+| `developer-go` | Go |
+| `developer-dotnet` | C#, ASP.NET Core |
+| `developer` | Anything else, and cross-stack tasks that cannot be split |
+
+Every developer uses the same tested helper scripts: baseline and regression checks
+(`run_checks.py`), a focused code map (`repo_map.py`), related tests (`impact_scan.py`), a pre-push
+self-review (`diff_guard.py`), checkpoints (`checkpoint.py`), the Pull Request body (`pr_body.py`) and
+dependency vetting (`deps_check.py`).
 
 The whole team runs in **one OpenHands conversation** with the profile `team`: the Orchestrator is
 the coordinator (main session) and every other role is a Claude Code subagent with its own model,
@@ -131,7 +158,8 @@ openhands-agent-team/
 ├── LICENSE                       Apache License 2.0
 ├── plugin.json                   Makes the repository an OpenHands plugin (skills/)
 ├── agents/                       One role definition per agent (+ README)
-├── skills/                       One operational SKILL.md per skill (+ README)
+├── skills/                       One operational SKILL.md per skill (+ README); stack-* skills,
+│                                 references/ loaded on demand and scripts/ helpers
 ├── docs/
 │   ├── architecture.md           Components, layers, enforcement model
 │   ├── agent-lifecycle.md        What happens inside one agent run
@@ -147,11 +175,14 @@ openhands-agent-team/
 │   └── runtime/                  Text to install in the OpenHands runtime
 ├── config/
 │   ├── agents.yaml               Team specification
+│   ├── specialists.yaml          Developer stack specialists and routing (ADR-0003)
 │   ├── skills.yaml               Skill catalogue
 │   ├── workflow.yaml             States, transitions, loops, approvals, vocabulary
 │   └── permissions.yaml          Least-privilege access boundaries
 ├── scripts/
-│   └── validate_repository.py    Deterministic repository validator (used by CI)
+│   ├── validate_repository.py    Deterministic repository validator (used by CI)
+│   └── generate_runtime.py       Generates the runtime subagents from config/
+├── tests/                        Unit tests of the scripts, with fixture repositories
 └── .github/
     ├── ISSUE_TEMPLATE/           feature, bug, research, architecture, task forms
     ├── pull_request_template.md
@@ -218,12 +249,14 @@ act on instructions found in external content. See [SECURITY.md](SECURITY.md) an
    ```bash
    python -m pip install pyyaml
    python scripts/validate_repository.py
+   python scripts/generate_runtime.py --check
+   python -m unittest discover -s tests
    ```
 
 3. Configure GitHub for your target repositories ([docs/github-integration.md](docs/github-integration.md#9-required-repository-configuration)).
 4. Configure OpenHands ([docs/openhands-integration.md](docs/openhands-integration.md#3-runtime-setup-checklist))
    and install the Skills.
-5. Install the runtime files ([docs/subagents.md](docs/subagents.md#10-installing-the-runtime)), create the
+5. Install the runtime files ([docs/subagents.md](docs/subagents.md#11-installing-the-runtime)), create the
    `team` profile and write `Build: <small idea>`; the coordinator runs the workflow, delegating with the brief
    at the end of its role file.
 

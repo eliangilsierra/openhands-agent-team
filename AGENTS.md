@@ -63,7 +63,7 @@ Rules:
 | [Researcher](agents/researcher.md) | research | `agent:research` | [research](skills/research/SKILL.md) |
 | [Architect](agents/architect.md) | architecture | `agent:architect` | [architecture](skills/architecture/SKILL.md) |
 | [Planner](agents/planner.md) | planning | `agent:planner` | [planning](skills/planning/SKILL.md) |
-| [Developer](agents/developer.md) | in-development | `agent:developer` | [development](skills/development/SKILL.md) |
+| [Developer](agents/developer.md) (generalist or a stack specialist) | in-development | `agent:developer` | [development](skills/development/SKILL.md) + a `stack-*` skill |
 | [QA Engineer](agents/qa-engineer.md) | bug-reproduction, qa | `agent:qa` | [testing](skills/testing/SKILL.md) |
 | [Code Reviewer](agents/code-reviewer.md) | code-review | `agent:reviewer` | [code-review](skills/code-review/SKILL.md) |
 | [Security Reviewer](agents/security-reviewer.md) | security-review | `agent:security` | [security-review](skills/security-review/SKILL.md) |
@@ -71,6 +71,11 @@ Rules:
 
 The canonical definitions are in [`config/agents.yaml`](config/agents.yaml),
 [`config/workflow.yaml`](config/workflow.yaml) and [`config/permissions.yaml`](config/permissions.yaml).
+The Developer role runs as the generalist `developer` or as one of its stack specialists
+(`developer-java-spring`, `developer-react`, ...), chosen per task by the coordinator with the
+[stack-routing](skills/stack-routing/SKILL.md) skill; specialists are variants of the role with the
+same label, permissions and Definition of Done ([`config/specialists.yaml`](config/specialists.yaml),
+ADR-0003).
 
 ## 5. Git workflow
 
@@ -239,8 +244,11 @@ All agents must never:
 ## 15. Working in this repository
 
 This repository contains only configuration, process and documentation — no application code.
-Agents changing it follow [CONTRIBUTING.md](CONTRIBUTING.md) and must run
-`python scripts/validate_repository.py` before opening a Pull Request.
+Its only executable files are the validator and generator in `scripts/`, the runtime hooks, the
+skill helper scripts in `skills/<name>/scripts/` (Python standard library only) and their tests in
+`tests/`. Agents changing it follow [CONTRIBUTING.md](CONTRIBUTING.md) and must run
+`python scripts/validate_repository.py` and `python -m unittest discover -s tests` before opening a
+Pull Request; generated runtime files change only through `python scripts/generate_runtime.py`.
 
 ## 16. Conversation scope and workspace
 

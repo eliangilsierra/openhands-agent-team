@@ -44,8 +44,13 @@ and trace back to requirements so nothing is lost and nothing is added.
 5. **Dependencies and order.** For each task list blocking tasks (`Depends on #n`) and mark tasks
    that can proceed in parallel. Avoid dependency chains longer than necessary. In the Technical
    approach of every task, add a line `Touches: <paths or globs>` with the files it is expected to
-   change: the coordinator runs two developers in parallel only on tasks whose `Touches` sets do not
-   overlap.
+   change: the coordinator runs developers in parallel only on tasks whose `Touches` sets do not
+   overlap. Below it, add `Stack: <specialist id>` from
+   `select_specialist.py --profile .agent-state/stack-profile.json --touches "<globs>"` (skill
+   [stack-routing](../stack-routing/SKILL.md)). **One task, one stack:** when the result is `split`,
+   split the slice by stack (for example the API in `developer-java-spring`, the page in
+   `developer-nextjs` with `Depends on` the API task). Keep a cross-stack task only when it cannot be
+   split without breaking the build, and then write `Stack: developer` and say why.
 6. **Write each task Issue** with the sections below. Copy the minimum context needed and link the
    rest. Assign `AC` IDs from the feature (and task-specific ones, `T-AC-n`, where a task needs
    finer criteria).
@@ -70,6 +75,7 @@ and trace back to requirements so nothing is lost and nothing is added.
    - [ ] Acceptance criteria are testable (Given/When/Then or an exact check).
    - [ ] Testing requirements name the test level(s) and the cases.
    - [ ] Technical approach is consistent with the architecture and Accepted ADRs.
+   - [ ] Technical approach has `Touches:` and `Stack:` lines; the task belongs to one stack.
    - [ ] Dependencies are closed or explicitly allow parallel work.
    - [ ] No open question remains that would block implementation.
    - [ ] Size fits one reviewable Pull Request.

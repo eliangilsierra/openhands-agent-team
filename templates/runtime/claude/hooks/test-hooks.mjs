@@ -71,6 +71,11 @@ const cases = [
   ['nobody edits branch protection', 'gh api -X DELETE repos/o/r/branches/main/protection', 'developer', 2],
   ['nobody deletes the home directory', 'rm -rf ~', 'developer', 2],
   ['unknown built-in subagent is read-only', 'git commit -m "feat: x"', 'Explore', 2],
+  ['specialist pushes its feature branch', 'git push -u origin feature/12-rest-timer', 'developer-java-spring', 0],
+  ['specialist can commit', 'git commit -m "feat: x"', 'developer-react', 0],
+  ['specialist cannot push main', 'git push origin main', 'developer-kotlin-android', 2],
+  ['specialist cannot merge a PR', 'gh pr merge 12 --squash', 'developer-python', 2],
+  ['unknown developer-* name is read-only', 'git commit -m "feat: x"', 'developer-cobol', 2],
 ];
 for (const [name, cmd, agent, expected] of cases) {
   const code = bash(cmd, agent);
@@ -95,6 +100,9 @@ const fileCases = [
   ['developer cannot write .env', '.env', 'developer', 2],
   ['developer may write .env.example', '.env.example', 'developer', 0],
   ['developer cannot write a private key', 'deploy/id_rsa', 'developer', 2],
+  ['specialist writes source', 'src/main/java/App.java', 'developer-java-spring', 0],
+  ['specialist cannot write workflows', '.github/workflows/ci.yml', 'developer-nextjs', 2],
+  ['unknown developer-* name cannot write source', 'src/app.ts', 'developer-cobol', 2],
 ];
 for (const [name, file, agent, expected] of fileCases) {
   const code = write(file, agent);

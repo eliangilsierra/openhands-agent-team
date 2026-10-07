@@ -245,8 +245,15 @@ autonomy:
   parallel_groups:
     - [code-review, security-review]  # after QA PASS, on the same pull request
   developer_parallelism:
-    max: 2
+    max: 3                            # the generalist and all stack specialists together
     requires: [no unmet dependency, disjoint "touches" file sets declared by the Planner, own worktree and branch]
+  specialist_routing:                 # ADR-0003, config/specialists.yaml
+    profile: .agent-state/stack-profile.json   # written once per repository by detect_stack.py, refreshed after merges that change build files
+    selector: skills/stack-routing/scripts/select_specialist.py
+    task_lines: ["Touches: <paths or globs>", "Stack: <specialist id>"]   # written by the Planner in Technical approach
+    explicit_stack_wins: true
+    cross_stack_task: The Planner splits it by stack; if it cannot be split, the generalist developer runs it with every stack skill involved.
+    escalation_keeps_specialist: true # model escalation re-delegates to the same specialist with the next model
   never_parallel:
     - product-definition, architecture and planning of the same feature
     - two agents writing the same branch

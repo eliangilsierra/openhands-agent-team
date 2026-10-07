@@ -1,0 +1,149 @@
+# config/specialists.yaml
+#
+# Canonical catalogue of the Developer's stack specialists (ADR-0003).
+#
+# A specialist is a runtime VARIANT of the Developer role, not a new role: it
+# inherits the Developer's label (agent:developer), workflow states, permissions
+# (config/permissions.yaml -> developer), restriction level (R4), runtime limits
+# and Definition of Done. It only adds stack knowledge: the stack skills it
+# preloads and a short expertise statement.
+#
+# The coordinator chooses the specialist per task with
+# skills/stack-routing/scripts/select_specialist.py, from the stack profile
+# written by detect_stack.py and the task's "Touches:" line. Subagents never
+# spawn subagents (CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1).
+#
+# Generated from this file by scripts/generate_runtime.py (never edit by hand):
+#   templates/runtime/claude/agents/<id>.md   (every id except the base role)
+#   skills/stack-routing/specialists.json     (runtime copy read by the scripts)
+#
+# Fields:
+#   title       human name of the specialist
+#   expertise   one sentence: what a senior engineer of this stack masters
+#   stacks      stack keys reported by detect_stack.py that this specialist owns,
+#               in routing priority order (see routing.priority)
+#   skills      skills preloaded in addition to the base role's skills
+#   runtime     optional overrides of the developer runtime (model, effort, max_turns)
+#
+# Consistency rules (checked by scripts/validate_repository.py):
+#   - ids are "developer" (the base role, generalist) or "developer-<kebab>"
+#   - every skill exists in config/skills.yaml and lists the specialist under "specialists"
+#   - every stack key appears in exactly one specialist and in routing.priority
+#   - the generated files and the SPECIALISTS list of hooks/lib.mjs match this file
+
+schema_version: 1
+base_role: developer
+
+routing:
+  # When a module matches several stack keys, the first key in this list wins:
+  # a Next.js module is also React and TypeScript, and is routed to developer-nextjs.
+  priority:
+    - nextjs
+    - angular
+    - vue
+    - react
+    - react-native
+    - android
+    - spring
+    - java
+    - kotlin
+    - dotnet
+    - go
+    - python
+    - node
+    - typescript
+    - javascript
+  # Used when no stack key matches, or when a task touches modules of different
+  # specialists and cannot be split (the generalist then loads every stack skill).
+  fallback: developer
+  # A task whose Touches span several specialists should be split by the Planner.
+  on_multiple_stacks: split
+
+specialists:
+  developer:
+    title: Generalist Developer
+    expertise: >-
+      Works in any language or stack, loading the stack skills of the modules a task touches
+      on demand; used for unknown stacks and for cross-stack tasks that cannot be split.
+    stacks: []
+    skills: []
+
+  developer-typescript:
+    title: TypeScript and Node.js Developer
+    expertise: >-
+      Senior TypeScript/JavaScript engineer for Node.js services, libraries and tooling
+      (Express, Fastify, NestJS), strict typing, async correctness and package hygiene.
+    stacks: [node, typescript, javascript]
+    skills: [stack-typescript]
+
+  developer-react:
+    title: React Developer
+    expertise: >-
+      Senior React engineer for single-page applications and React Native: component design,
+      hooks, state and server-state management, accessibility and rendering performance.
+    stacks: [react, react-native]
+    skills: [stack-react, stack-typescript]
+
+  developer-nextjs:
+    title: Next.js Developer
+    expertise: >-
+      Senior Next.js engineer: App Router, React Server Components, server actions, caching and
+      revalidation, routing, metadata, edge and Node runtimes.
+    stacks: [nextjs]
+    skills: [stack-nextjs, stack-react]
+
+  developer-angular:
+    title: Angular Developer
+    expertise: >-
+      Senior Angular engineer: standalone components, signals, RxJS, dependency injection,
+      routing, reactive forms, change detection and Angular testing.
+    stacks: [angular]
+    skills: [stack-angular, stack-typescript]
+
+  developer-vue:
+    title: Vue Developer
+    expertise: >-
+      Senior Vue engineer: Composition API, single-file components, Pinia, Vue Router and Nuxt,
+      with typed props and component testing.
+    stacks: [vue]
+    skills: [stack-vue, stack-typescript]
+
+  developer-java-spring:
+    title: Java and Spring Boot Developer
+    expertise: >-
+      Senior Java engineer for Spring Boot services: layered design, Spring Data JPA, transactions,
+      validation, security, Maven and Gradle builds, JUnit 5, Mockito and Testcontainers.
+    stacks: [spring, java]
+    skills: [stack-java-spring]
+
+  developer-kotlin-android:
+    title: Kotlin and Android Developer
+    expertise: >-
+      Senior Kotlin engineer for Android (Jetpack Compose, ViewModel, coroutines and Flow, Hilt,
+      Room) and Kotlin on the JVM (Ktor, multiplatform), with Gradle Kotlin DSL builds.
+    stacks: [android, kotlin]
+    skills: [stack-kotlin-android]
+
+  developer-python:
+    title: Python Developer
+    expertise: >-
+      Senior Python engineer for services, libraries and data tooling (FastAPI, Django, Flask):
+      typing, packaging with uv or Poetry, pytest, ruff and mypy.
+    stacks: [python]
+    skills: [stack-python]
+
+  developer-go:
+    title: Go Developer
+    expertise: >-
+      Senior Go engineer: idiomatic packages, interfaces, error wrapping, context propagation,
+      goroutines and channels, net/http services and table-driven tests.
+    stacks: [go]
+    skills: [stack-go]
+
+  developer-dotnet:
+    title: .NET Developer
+    expertise: >-
+      Senior C# engineer for ASP.NET Core: minimal APIs and controllers, dependency injection,
+      Entity Framework Core, async/await, nullable reference types and xUnit.
+    stacks: [dotnet]
+    skills: [stack-dotnet]
