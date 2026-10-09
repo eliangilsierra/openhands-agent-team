@@ -1,9 +1,13 @@
 #!/bin/sh
-# pre-push: never push main or master, enforce branch names, and scan the pushed commits for secrets.
+# pre-push: never push main or master, enforce branch names, and scan the pushed commits for secrets
+# with the team policy (Issue #15).
+# shellcheck source-path=SCRIPTDIR source=scan-lib.sh
+. "$(dirname "$0")/scan-lib.sh"
 zero=0000000000000000000000000000000000000000
 pattern='^(feature|bugfix|refactor|chore|docs)/[0-9]+-[a-z0-9]+(-[a-z0-9]+)*$'
-secrets='gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,}|sk-ant-[A-Za-z0-9_-]{20,}|(AKIA|ASIA)[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
 status=0
+added=$(mktemp)
+trap 'rm -f "$added"' EXIT
 
 while read -r _local_ref local_sha remote_ref remote_sha; do
   [ -z "$remote_ref" ] && continue
@@ -28,8 +32,17 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
     range="$remote_sha..$local_sha"
   fi
   # shellcheck disable=SC2086 # range is intentionally split into git arguments
-  if git log -p $range 2>/dev/null | grep -Eq "^\+.*($secrets)"; then
-    echo "pre-push: a pushed commit adds something that looks like a secret; remove it and rotate the credential" >&2
+  git log -p --no-color $range 2>/dev/null | grep '^+' | grep -v '^+++ ' | sed 's/^+//' > "$added"
+  found=$(team_scan_file "$added" secret)
+  case $? in
+    1)
+      echo "pre-push: a pushed commit adds something that looks like a secret ($found); remove it and rotate the credential" >&2
+      status=1
+      ;;
+    2) status=1 ;;
+  esac
+  if team_gitleaks_enabled && ! gitleaks git --log-opts="$range" --redact --no-banner >&2; then
+    echo "pre-push: gitleaks reported a finding in the pushed commits" >&2
     status=1
   fi
 done

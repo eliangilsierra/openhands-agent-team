@@ -1,8 +1,24 @@
 #!/bin/sh
-# commit-msg: Conventional Commits subject (72 characters at most) and no Co-Authored-By trailers.
+# commit-msg: Conventional Commits subject (72 characters at most), no Co-Authored-By trailers, and no
+# secrets or private data in the message, which is published with the commit (Issue #15).
 # Installed through core.hooksPath for every repository the agents touch (see docs/subagents.md).
+# shellcheck source-path=SCRIPTDIR source=scan-lib.sh
+. "$(dirname "$0")/scan-lib.sh"
 msg_file="$1"
 subject="$(sed -n '1p' "$msg_file")"
+
+body=$(mktemp)
+trap 'rm -f "$body"' EXIT
+# Comment lines are not part of the message; sign-off style trailers carry the author's own address.
+grep -v '^#' "$msg_file" | grep -Ev '^[A-Za-z-]+-[Bb]y: ' > "$body"
+found=$(team_scan_file "$body" "secret private")
+case $? in
+  1)
+    echo "commit-msg: the message contains $found; commit messages are public, so redact them" >&2
+    exit 1
+    ;;
+  2) exit 1 ;;
+esac
 
 case "$subject" in
   "Merge "*) exit 0 ;; # merging main into a working branch; squash merge removes it
