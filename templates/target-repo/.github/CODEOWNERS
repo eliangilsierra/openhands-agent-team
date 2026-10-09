@@ -1,0 +1,3 @@
+# Human owners only: agents are never code owners (docs/github-integration.md in the team repository).
+# bootstrap.sh sets the repository owner.
+* @{{owner}}

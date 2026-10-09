@@ -43,7 +43,7 @@ const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'} ${name}`)
 const good = prTemplate.replace(/^Closes #$/m, 'Closes #12');
 const c = (sha, msg, parents = 1) => ({ sha: sha.padEnd(40, '0'), commit: { message: msg }, parents: Array.from({ length: parents }, () => ({})) });
 const okCommits = [c('aaa1111', 'feat(timer): add rest countdown'), c('bbb2222', 'test(timer): cover countdown reset\n\nbody')];
-const mk = (over = {}) => ({ pull_request: { number: 20, title: 'feat(timer): add rest countdown (#12)', body: good, draft: false, head: { ref: 'feature/12-rest-timer' }, labels: [{ name: 'agent:qa' }], ...over } });
+const mk = (over = {}, defaultBranch = 'main') => ({ repository: { default_branch: defaultBranch }, pull_request: { number: 20, title: 'feat(timer): add rest countdown (#12)', body: good, draft: false, head: { ref: 'feature/12-rest-timer' }, base: { ref: defaultBranch }, labels: [{ name: 'agent:qa' }], ...over } });
 
 for (const which of ['ai', 'kit']) {
   const t = (s) => `[${which}] ${s}`;
@@ -83,6 +83,18 @@ for (const which of ['ai', 'kit']) {
   m = await run(which, mk({ labels: [{ name: 'agent:developer' }, { name: 'changes-requested' }] }), okCommits);
   check(t('changes-requested blocks the pull request'), /changes-requested/.test(m.core.failed || ''));
 }
+// ADR-0004: integration branch and release Pull Requests (kit only)
+let k = await run('kit', mk({}, 'develop'), okCommits);
+check('[kit] task PR into develop passes when develop is the default branch', k.core.failed === null);
+k = await run('kit', mk({ base: { ref: 'main' } }, 'develop'), okCommits);
+check('[kit] task PR into main fails when develop is the integration branch', /integration branch "develop"/.test(k.core.failed || ''));
+k = await run('kit', mk({ title: 'chore(release): 1.4.0', body: 'Release notes', head: { ref: 'develop' }, base: { ref: 'main' } }, 'develop'), [c('abc1234', 'Merge pull request #30', 2)]);
+check('[kit] release PR from develop to main passes without a closing keyword', k.core.failed === null);
+k = await run('kit', mk({ title: 'Release 1.4', body: 'Release notes', head: { ref: 'develop' }, base: { ref: 'main' } }, 'develop'), []);
+check('[kit] release PR still needs a Conventional Commits title', /release title/.test(k.core.failed || ''));
+k = await run('kit', mk({ head: { ref: 'feature/12-rest-timer' }, base: { ref: 'main' } }, 'main'), okCommits);
+check('[kit] single-branch repositories keep targeting main', k.core.failed === null);
+
 let m = await run('ai', mk({ labels: [{ name: 'needs-human' }] }), okCommits);
 check('[ai] needs-human summary', m.core.summary.parts.join(' ').includes('Awaiting a human'));
 m = await run('ai', mk(), okCommits);

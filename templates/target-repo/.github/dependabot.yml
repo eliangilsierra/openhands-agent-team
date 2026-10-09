@@ -1,0 +1,11 @@
+# Dependabot updates the pinned GitHub Actions; Pull Requests target the default branch (develop).
+# Add the project's ecosystems (npm, maven, gradle, pip, gomod, nuget) when the stack is known.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    labels: []

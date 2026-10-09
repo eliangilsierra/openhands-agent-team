@@ -7,6 +7,7 @@ Outputs (never edit them by hand):
     skills/stack-routing/specialists.json            runtime copy of the catalogue for the routing scripts
     templates/runtime/claude/hooks/lib.mjs           only the block between the GENERATED SPECIALISTS markers
     secret-patterns.tsv copies                       config/secret-patterns.tsv for the hooks, git hooks and scripts
+    templates/target-repo/.github/labels.json        the labels of config/workflow.yaml, applied by bootstrap.sh
 
 Usage:
     python scripts/generate_runtime.py          write the files
@@ -29,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = ROOT / "templates" / "runtime" / "claude" / "agents"
 LIB = ROOT / "templates" / "runtime" / "claude" / "hooks" / "lib.mjs"
 CATALOGUE_JSON = ROOT / "skills" / "stack-routing" / "specialists.json"
+LABELS_JSON = ROOT / "templates" / "target-repo" / ".github" / "labels.json"
 POLICY = ROOT / "config" / "secret-patterns.tsv"
 POLICY_COPIES = [
     ROOT / "templates" / "runtime" / "claude" / "hooks" / "secret-patterns.tsv",
@@ -228,6 +230,11 @@ def plan() -> dict[Path, str]:
     if not pattern.search(lib):
         raise SystemExit(f"{LIB.relative_to(ROOT)}: missing the GENERATED SPECIALISTS markers")
     files[LIB] = pattern.sub(lambda _: "\n".join(block), lib)
+
+    labels = load("workflow.yaml")["labels"]
+    files[LABELS_JSON] = json.dumps(
+        [{"name": name, "color": spec["color"], "description": spec["description"]} for name, spec in labels.items()],
+        indent=2, ensure_ascii=False) + "\n"
 
     policy = POLICY.read_text(encoding="utf-8").replace("\r\n", "\n")
     for copy in POLICY_COPIES:
