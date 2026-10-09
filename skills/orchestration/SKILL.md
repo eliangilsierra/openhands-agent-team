@@ -86,6 +86,9 @@ Repeat until every item is done or waiting on a human:
 5. When an item reaches a human gate, mark it `Waiting on: ADR` or `Waiting on: merge` and continue with
    the other items. Gates are per item.
 6. When nothing can advance without the person, stop with the report of step 8.
+7. Releases are not agent work: in two-branch projects a human opens and merges the Pull Request from
+   `develop` to `main` (ADR-0004). Never schedule, prepare or merge it; report merged work as "in
+   develop, awaiting release" when the person asks.
 
 ### 4. Delegation brief
 
@@ -94,7 +97,7 @@ Never paste the conversation. A brief contains only:
 ```text
 Work item: <owner>/<repo>#<n> (<Issue|Pull Request>) — <title>
 Stage: <state from config/workflow.yaml>
-Repository directory: <path> (developers: your worktree; create branch <prefix>/<n>-<slug> from origin/main)
+Repository directory: <path> (developers: your worktree; create branch <prefix>/<n>-<slug> from the integration branch, origin/HEAD)
 Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
 Inputs: <links to requirements, ADRs, plan, QA report, review findings>
 Constraints: <touches, what not to change, decisions already made>

@@ -1,6 +1,6 @@
 ---
 name: development
-description: Implement one ai-ready GitHub task Issue end to end - understand requirements, inspect repository, architecture and ADRs, create a convention-named branch (never main), implement, write tests, run tests, lint and build, review the diff, commit, push and open a Pull Request; then address QA and review findings. Use for any code change to an application repository.
+description: Implement one ai-ready GitHub task Issue end to end - understand requirements, inspect repository, architecture and ADRs, create a convention-named branch from the integration branch (never main or develop), implement, write tests, run tests, lint and build, review the diff, commit, push and open a Pull Request; then address QA and review findings. Use for any code change to an application repository.
 ---
 
 # Development
@@ -29,7 +29,10 @@ your own git worktree, so another developer may be working on a different task a
 **Never lose work.** Keep `.agent-state/items/<n>.md` (the checkpoint) current after every milestone.
 Push after the first meaningful commit and open the Pull Request as a **draft** right away, then keep
 pushing as you go: if you are stopped, another developer continues from your branch and checkpoint.
-To bring in changes from `main`, merge `origin/main` into your branch; do not rebase or force-push.
+The **integration branch** is the repository's default branch: `develop` in projects created from
+the project template, `main` in single-branch projects (ADR-0004). `python "$S/branches.py"` prints
+it (for example `origin/develop`; written `<base>` below). To bring in its changes, merge `<base>`
+into your branch; do not rebase or force-push.
 
 ## Inputs
 
@@ -65,6 +68,7 @@ next to your checkpoint (`.agent-state/items/<n>-*.json`).
 | `checkpoint.py` | Keep the checkpoint and its GitHub comment current | `python "$S/checkpoint.py" --item <n> --done "<step>" --mirror` |
 | `pr_body.py` | Write a complete Pull Request body with the evidence | `python "$S/pr_body.py" --issue <n> --summary "..." --checks ... --out .agent-state/items/<n>-pr.md` |
 | `deps_check.py` | Check licence, maintenance and advisories before adding a dependency | `python "$S/deps_check.py" --ecosystem npm --name <pkg>` |
+| `branches.py` | Print the integration branch (`origin/develop` or `origin/main`) | `python "$S/branches.py"` |
 | `secret_scan.py` | Check a text or file for secrets and private data before publishing it | `python "$S/secret_scan.py" --scope all .agent-state/items/<n>-pr.md` |
 
 A script that fails is reported with its output like any other command; it never replaces your
@@ -88,12 +92,13 @@ judgement, and its absence never blocks the task (fall back to the manual step a
 4. **Inspect architecture.** Read the architecture document sections relevant to the task.
 5. **Inspect ADRs.** Read every ADR referenced by the task and any ADR covering the components you
    touch. Your change must comply; if it cannot, stop and escalate to `agent:architect`.
-6. **Create branch.** You run in your own git worktree; create the branch there from an up-to-date
-   `origin/main` (never from the worktree's default branch without fetching):
+6. **Create branch.** You run in your own git worktree; create the branch there from the
+   up-to-date integration branch `<base>` (never from a stale local branch):
 
    ```bash
    git fetch origin
-   git switch -c feature/<issue-number>-<short-description> origin/main
+   base=$(python "$HOME/.claude/skills/development/scripts/branches.py")   # origin/develop or origin/main
+   git switch -c feature/<issue-number>-<short-description> "$base"
    ```
 
    | Prefix | Use |
@@ -107,7 +112,7 @@ judgement, and its absence never blocks the task (fall back to the manual step a
    range (`feature/42-login-rate-limit`, never `task/5-11-ui`). Never clone the repository again or
    work in another directory: the brief names your worktree.
 
-   Never work on `main`. If you find yourself on `main`, stop and switch before any edit.
+   Never work on `main` or `develop`. If you find yourself on one of them, stop and switch before any edit.
    Remove the `ai-ready` label from the task Issue (keep `agent:developer`): the task is now
    `in-development`. Update the checkpoint with the branch.
 7. **Implement.** Make the smallest change that satisfies every acceptance criterion. Follow
@@ -124,7 +129,7 @@ judgement, and its absence never blocks the task (fall back to the manual step a
    (fewer tests, more skipped tests, a check that passed before and fails now). A check the module
    has no command for is reported as `NOT APPLICABLE`, not invented.
 10. **Review diff.** Run `diff_guard.py --touches "<Touches>"` and fix every blocking finding; look
-    at every warning. Then read `git diff origin/main...HEAD` yourself: only task-scoped changes; no
+    at every warning. Then read `git diff <base>...HEAD` yourself: only task-scoped changes; no
     secrets, `.env`, credentials or personal data; no debug prints, commented-out code, stray files
     or large generated artefacts; error handling present; docs updated. Only use `--allow <rule>` for
     a finding you justify in the Pull Request (for example a test file renamed, not deleted).
@@ -138,7 +143,8 @@ judgement, and its absence never blocks the task (fall back to the manual step a
 13. **Open PR.** Render the body with `pr_body.py` (it follows
     `.github/pull_request_template.md`, fills the Tests table from your evidence and ticks only the
     checklist items the evidence proves; tick the others yourself only when they are true). Open a
-    **draft** Pull Request titled in Conventional Commits form
+    **draft** Pull Request against the integration branch (`gh pr create` targets the default branch)
+    titled in Conventional Commits form
     (`feat(auth): reject login after 5 failed attempts (#122)`) with exactly one `Closes #<issue>`.
     When CI is green (or failures are proven unrelated), mark it ready, add label `agent:qa`, update
     your checkpoint and **stop** with the result contract. Do not merge.
@@ -156,7 +162,7 @@ Review → Security Review runs again). Never resolve another agent's thread wit
   as "redact and retry", never as something to work around.
 - Never bypass git's safety nets (`--no-verify`, `commit -n`, `core.hooksPath`, `GIT_CONFIG_*`,
   `git add --force`, new remotes, history rewrites). The hooks deny them; a denial is a policy decision.
-- Never commit to, push to or merge into `main`, on GitHub or with a local `git merge`. Never
+- Never commit to, push to or merge into `main` or `develop`, on GitHub or with a local `git merge`. Never
   enable auto-merge. To resolve conflicts, update your own branch and push it.
 - One task Issue per branch and per Pull Request. If the task is too large, stop and ask the
   Planner to split it; do not batch several tasks together.
@@ -181,7 +187,7 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 ## Quality checklist
 
 - [ ] Branch name matches `<prefix>/<issue-number>-<short-description>` with the number of the one
-      task Issue; not on `main`.
+      task Issue, created from the integration branch; not on `main` or `develop`.
 - [ ] Commit messages and the Pull Request title follow Conventional Commits.
 - [ ] The Pull Request has exactly one `Closes #<issue>`.
 - [ ] Every acceptance criterion is implemented and covered by a test.

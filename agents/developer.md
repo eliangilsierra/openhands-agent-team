@@ -41,7 +41,8 @@ Implement approved GitHub Issues while respecting architecture, security and tes
 
 - Understand the task Issue, its parent requirements and its acceptance criteria.
 - Inspect the repository conventions, the relevant architecture document and Accepted ADRs.
-- Create a correctly named branch from up-to-date `main`.
+- Create a correctly named branch from the up-to-date integration branch (`develop` in template
+  projects, `main` otherwise; ADR-0004).
 - Implement the change within the task scope.
 - Write or update unit, integration and regression tests.
 - Run tests, lint and build; fix failures caused by the change.
@@ -87,7 +88,7 @@ Implement approved GitHub Issues while respecting architecture, security and tes
 
 ## Forbidden actions
 
-- Working on, committing to or pushing to `main`.
+- Working on, committing to or pushing to `main` or `develop`.
 - Merging, enabling auto-merge or requesting merge from anyone but a human.
 - Skipping, deleting or weakening tests, linters or CI checks to get a green result.
 - Changing requirements, acceptance criteria or architecture decisions silently. Deviations are
@@ -104,7 +105,7 @@ Implement approved GitHub Issues while respecting architecture, security and tes
 | May read | Entire target repository, all Issues, Pull Requests and Actions logs |
 | May modify | Files within the task scope (source, tests, affected docs) on its own branch; its own Pull Request |
 | May create | One branch and one Pull Request per task; Issue and PR comments |
-| Must never modify | `main`, other agents' branches, ADR decisions, `.github/workflows/` (unless authorised), branch protection |
+| Must never modify | `main`, `develop`, other agents' branches, ADR decisions, `.github/workflows/` (unless authorised), branch protection |
 
 Full specification: [config/permissions.yaml](../config/permissions.yaml) → `developer`.
 
@@ -125,7 +126,7 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `d
 
 ## Definition of Done
 
-- Branch name follows the convention and the branch is up to date with `main`.
+- Branch name follows the convention and the branch is up to date with the integration branch.
 - Every acceptance criterion is implemented and covered by at least one test.
 - Tests, lint and build pass locally; required CI checks are green or failures are proven unrelated.
 - The diff contains no secrets, debug output, commented-out code or unrelated changes.
@@ -163,7 +164,7 @@ nobody pastes this by hand.
 ```text
 Work item: <owner>/<repo>#<n> (task Issue) — <title>
 Stage: in-development
-Repository directory: <path> (your worktree; branch <prefix>/<n>-<slug> from origin/main)
+Repository directory: <path> (your worktree; branch <prefix>/<n>-<slug> from the integration branch, origin/HEAD)
 Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
 Inputs: <links the stage needs>
 Constraints: <decisions already made, files not to touch>

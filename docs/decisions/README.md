@@ -14,6 +14,7 @@ their own ADRs in their own `docs/decisions/` directory using the same process a
 | --- | --- | --- | --- |
 | [ADR-0001](ADR-0001-agent-team-architecture.md) | Use GitHub, OpenHands, Agent Profiles, Skills, MCP, ACP / Claude Code and GitHub Actions as the agent team architecture | Accepted | 2026-10-01 |
 | [ADR-0002](ADR-0002-single-session-subagent-team.md) | Run the team as one coordinator session with Claude Code subagents (amends ADR-0001) | Accepted | 2026-10-05 |
+| [ADR-0004](ADR-0004-integration-branch-and-project-template.md) | Target the repository's integration branch and start projects from a template | Proposed | 2026-10-09 |
 | [ADR-0003](ADR-0003-stack-specialist-developers.md) | Run the Developer role as stack specialists chosen by the coordinator (extends ADR-0002) | Proposed | 2026-10-07 |
 
 Keep this index updated in the same Pull Request that adds or changes an ADR.

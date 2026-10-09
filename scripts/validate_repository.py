@@ -136,6 +136,18 @@ REQUIRED_FILES = [
     "skills/development/scripts/secret-patterns.tsv",
     "templates/target-repo/.github/workflows/secret-scan.yml",
     "templates/target-repo/.gitleaks.toml",
+    "docs/decisions/ADR-0004-integration-branch-and-project-template.md",
+    "scripts/build_project_template.py",
+    "skills/development/scripts/branches.py",
+    "templates/target-repo/LICENSE",
+    "templates/target-repo/PROJECT_README.md",
+    "templates/target-repo/.gitignore",
+    "templates/target-repo/.gitattributes",
+    "templates/target-repo/.editorconfig",
+    "templates/target-repo/.github/CODEOWNERS",
+    "templates/target-repo/.github/dependabot.yml",
+    "templates/target-repo/.github/labels.json",
+    "templates/target-repo/scripts/bootstrap.sh",
 ]
 
 REQUIRED_DIRS = ["agents", "skills", "docs", "docs/decisions", "templates",
@@ -227,10 +239,12 @@ SOURCE_EXTENSIONS = {
     ".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".go", ".java", ".rb", ".php", ".cs",
     ".rs", ".c", ".h", ".cpp", ".hpp", ".kt", ".swift", ".scala", ".sh", ".ps1", ".vue", ".svelte",
 }
-ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py", "scripts/test_workflows.mjs", "scripts/generate_runtime.py"}
+ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py", "scripts/test_workflows.mjs", "scripts/generate_runtime.py",
+                        "scripts/build_project_template.py"}
 # Operational runtime files (ADR-0002): Claude Code hooks installed in ~/.claude/hooks of the runtime.
 # Unit tests and their fixture repositories (ADR-0003).
-ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/", "templates/runtime/claude/githooks/", "tests/")
+ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/", "templates/runtime/claude/githooks/", "tests/",
+                           "templates/target-repo/scripts/")
 # Skill helper scripts (ADR-0003): skills/<name>/scripts/*.py, Python standard library only.
 SKILL_SCRIPT = re.compile(r"^skills/[a-z0-9-]+/scripts/[a-z0-9_]+\.py$")
 
