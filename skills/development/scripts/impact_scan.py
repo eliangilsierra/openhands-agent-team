@@ -7,7 +7,7 @@ foo.go -> foo_test.go, Foo.cs -> FooTests.cs) and by test files that mention the
 name. Use it to run the relevant tests first and to see which changes still lack tests.
 
 Usage:
-    python impact_scan.py [--base origin/main] [--files a.ts,b.ts] [--root .] [--json]
+    python impact_scan.py [--base origin/develop] [--files a.ts,b.ts] [--root .] [--json]
 
 Python 3.10+, standard library only.
 """
@@ -20,6 +20,9 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import branches  # noqa: E402  (sibling module: the integration branch, ADR-0004)
 
 SOURCE = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".vue", ".java", ".kt", ".py", ".go", ".cs"}
 TEST = re.compile(r"(^|/)(tests?|__tests__|spec|androidTest)/|(\.|_)(test|spec)\.\w+$|(^|/)test_\w+\.py$|"
@@ -93,12 +96,12 @@ def scan(root: Path, changed: list[str]) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", default=".")
-    parser.add_argument("--base", default="origin/main")
+    parser.add_argument("--base", help="default: the integration branch (origin/HEAD)")
     parser.add_argument("--files", help="comma-separated files instead of the git diff")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
-    changed = [f.strip() for f in args.files.split(",")] if args.files else changed_files(root, args.base)
+    changed = [f.strip() for f in args.files.split(",")] if args.files else changed_files(root, args.base or branches.integration_ref(str(root)))
     report = scan(root, changed)
     if args.json:
         print(json.dumps(report, indent=2))

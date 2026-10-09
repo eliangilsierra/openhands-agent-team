@@ -112,6 +112,13 @@ for (const [name, cmd, agent, expected] of cases) {
   check(`guard-bash: ${name}`, code === expected, `exit ${code}, expected ${expected}`);
 }
 check('guard-bash: developer cannot merge while on main', bash('git merge feature/12-x', 'developer', onMain) === 2);
+// ADR-0004: develop is the protected integration branch of template projects
+const onDevelop = repo('develop-repo', 'develop');
+check('guard-bash: developer cannot push develop', bash('git push origin develop', 'developer') === 2);
+check('guard-bash: developer cannot push HEAD:develop', bash('git push origin HEAD:develop', 'developer') === 2);
+check('guard-bash: developer cannot merge while on develop', bash('git merge feature/12-x', 'developer', onDevelop) === 2);
+check('guard-bash: developer can merge origin/develop into its branch', bash('git fetch origin && git merge origin/develop', 'developer') === 0);
+check('guard-bash: developer can branch from origin/develop', bash('git switch -c feature/12-rest-timer origin/develop', 'developer') === 0);
 check('guard-bash: architect plain push on docs branch', bash('git push', 'architect', onDocs) === 0);
 
 // ---------------------------------------------------------------- secrets and private data (Issue #15)
@@ -250,6 +257,7 @@ const head = git(onFeature, 'rev-parse', 'HEAD');
 const prePush = (line, cwd = onFeature) => spawnSync('sh', [path.join(githooks, 'pre-push'), 'origin', 'url'], { cwd, input: `${line}\n`, encoding: 'utf8' }).status;
 check('pre-push: allows a feature branch', prePush(`refs/heads/feature/12-rest-timer ${head} refs/heads/feature/12-rest-timer ${zero}`) === 0);
 check('pre-push: blocks main', prePush(`refs/heads/main ${head} refs/heads/main ${zero}`) !== 0);
+check('pre-push: blocks develop', prePush(`refs/heads/develop ${head} refs/heads/develop ${zero}`) !== 0);
 check('pre-push: blocks a badly named branch', prePush(`refs/heads/x ${head} refs/heads/task/5-11-ui ${zero}`) !== 0);
 const token = ['gh', 'p_', 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0'].join('');
 fs.writeFileSync(path.join(onFeature, 'config.ts'), `export const t = "${token}";\n`);
