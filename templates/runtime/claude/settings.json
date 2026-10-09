@@ -29,6 +29,15 @@
             "command": "node \"$HOME/.claude/hooks/guard-files.mjs\""
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/guard-publish.mjs\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
