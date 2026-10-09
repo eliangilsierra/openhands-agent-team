@@ -73,8 +73,8 @@ say "Repository $REPO (template: $IS_TEMPLATE, dry run: $DRY_RUN)"
 # ---------------------------------------------------------------------------------------------
 detect_stack() {
   if [ -f pom.xml ]; then echo java-maven
-  elif ls build.gradle* settings.gradle* > /dev/null 2>&1; then
-    if grep -Eqs 'com\.android\.(application|library)' build.gradle* */build.gradle*; then echo android; else echo java-gradle; fi
+  elif ls ./build.gradle* ./settings.gradle* > /dev/null 2>&1; then
+    if grep -Eqs 'com\.android\.(application|library)' ./build.gradle* ./*/build.gradle*; then echo android; else echo java-gradle; fi
   elif [ -f package.json ]; then echo node
   elif [ -f pyproject.toml ] || [ -f requirements.txt ]; then echo python
   elif [ -f go.mod ]; then echo go
