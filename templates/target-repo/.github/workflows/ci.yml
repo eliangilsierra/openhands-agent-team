@@ -35,7 +35,8 @@ jobs:
 
       - name: Install dependencies
         if: hashFiles('package.json') != ''
-        run: npm ci
+        # npm ci needs a lockfile; projects without one fall back to npm install.
+        run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
       - name: Lint
         if: hashFiles('package.json') != ''

@@ -2,13 +2,13 @@
 
 ## Status
 
-Proposed
+Accepted
 
 | Field | Value |
 | --- | --- |
 | Date proposed | 2026-10-07 |
-| Date decided | — |
-| Decided by | Repository owner, by merging the Pull Request that introduces this ADR |
+| Date decided | 2026-10-07 |
+| Decided by | Repository owner, by merging the Pull Request that introduces this ADR (#12) |
 | Related Issue | #11 |
 | Supersedes | None. Extends [ADR-0002](ADR-0002-single-session-subagent-team.md) |
 | Related ADRs | ADR-0001, ADR-0002 |
