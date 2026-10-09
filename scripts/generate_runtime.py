@@ -6,6 +6,7 @@ Outputs (never edit them by hand):
     templates/runtime/claude/agents/<specialist>.md  one per Developer specialist in config/specialists.yaml
     skills/stack-routing/specialists.json            runtime copy of the catalogue for the routing scripts
     templates/runtime/claude/hooks/lib.mjs           only the block between the GENERATED SPECIALISTS markers
+    secret-patterns.tsv copies                       config/secret-patterns.tsv for the hooks, git hooks and scripts
 
 Usage:
     python scripts/generate_runtime.py          write the files
@@ -28,6 +29,13 @@ ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = ROOT / "templates" / "runtime" / "claude" / "agents"
 LIB = ROOT / "templates" / "runtime" / "claude" / "hooks" / "lib.mjs"
 CATALOGUE_JSON = ROOT / "skills" / "stack-routing" / "specialists.json"
+POLICY = ROOT / "config" / "secret-patterns.tsv"
+POLICY_COPIES = [
+    ROOT / "templates" / "runtime" / "claude" / "hooks" / "secret-patterns.tsv",
+    ROOT / "templates" / "runtime" / "claude" / "githooks" / "secret-patterns.tsv",
+    ROOT / "skills" / "development" / "scripts" / "secret-patterns.tsv",
+]
+POLICY_HEADER = "# GENERATED from config/secret-patterns.tsv by scripts/generate_runtime.py - do not edit.\n"
 BEGIN = "  // BEGIN GENERATED SPECIALISTS (scripts/generate_runtime.py from config/specialists.yaml)"
 END = "  // END GENERATED SPECIALISTS"
 
@@ -220,6 +228,10 @@ def plan() -> dict[Path, str]:
     if not pattern.search(lib):
         raise SystemExit(f"{LIB.relative_to(ROOT)}: missing the GENERATED SPECIALISTS markers")
     files[LIB] = pattern.sub(lambda _: "\n".join(block), lib)
+
+    policy = POLICY.read_text(encoding="utf-8").replace("\r\n", "\n")
+    for copy in POLICY_COPIES:
+        files[copy] = POLICY_HEADER + policy
     return files
 
 

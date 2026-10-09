@@ -215,19 +215,25 @@ Context rules:
 
 | Layer | File | Effect |
 | --- | --- | --- |
-| `PreToolUse` Bash | `hooks/guard-bash.mjs` | Global denials and per-level git limits |
-| `PreToolUse` Edit/Write | `hooks/guard-files.mjs` | Per-level write paths, no secret files, no workflow files |
+| `PreToolUse` Bash | `hooks/guard-bash.mjs` | Global denials, per-level git limits, git safety-net bypasses, secrets in commands, secrets and private data in published text |
+| `PreToolUse` Edit/Write | `hooks/guard-files.mjs` | Per-level write paths, no secret files, no workflow files, no secrets in content |
+| `PreToolUse` MCP | `hooks/guard-publish.mjs` | Secrets in any MCP call; private data in GitHub writes |
 | `PostToolUse` | `hooks/heartbeat.mjs` | Stall detection |
 | `SubagentStop` | `hooks/subagent-stop.mjs` | Result contract, event log |
 | `SessionStart` | `hooks/session-start.mjs` | Excludes `.agent-state/`, re-injects the board |
 | `PreCompact` | `hooks/pre-compact.mjs` | Board snapshot |
 | `StopFailure` | `hooks/stop-failure.mjs` | Pause marker |
-| git `commit-msg` | `githooks/commit-msg` | Conventional Commits, no `Co-Authored-By` |
-| git `pre-push` | `githooks/pre-push` | Never `main`, branch names, secret scan |
+| git `pre-commit` | `githooks/pre-commit` | Staged secrets, secret files, files over 1 MB, conflict markers |
+| git `commit-msg` | `githooks/commit-msg` | Conventional Commits, no `Co-Authored-By`, no secrets or private data |
+| git `pre-push` | `githooks/pre-push` | Never `main`, branch names, secret scan of pushed commits |
+| Policy | `config/secret-patterns.tsv` (copies in `hooks/`, `githooks/`, `skills/development/scripts/`) | One list of secret, private-data and allow rules for every layer |
+| CI | gitleaks in `validate-repository` and the kit's `secret-scan` | Whole-history scan with an independent rule set |
 | GitHub | branch protection, squash only, `pr-conventions`, `ci` | Pull Requests cannot merge with `changes-requested` or failing checks |
 
-All of them are tested in CI: `node templates/runtime/claude/hooks/test-hooks.mjs` and
-`node scripts/test_workflows.mjs`.
+All of them are tested in CI: `node templates/runtime/claude/hooks/test-hooks.mjs`,
+`node scripts/test_workflows.mjs` and `python -m unittest discover -s tests`. The hooks fail closed: if
+the policy file is missing, they deny and ask to reinstall `~/.claude/hooks`. Set `TEAM_GITLEAKS=1` in
+the runtime to add a local gitleaks scan to `pre-commit` and `pre-push` when the binary is installed.
 
 ## 10. Token use
 

@@ -42,9 +42,12 @@ with a key stored next to it.
 3. Humans: **revoke and rotate the secret immediately**. Removing it from the branch or rewriting
    history is not sufficient — assume it is compromised once pushed.
 4. Remove it from the repository and, if required, purge it from history with the repository
-   owner's approval.
-5. Review access logs of the affected service where available.
-6. Record the incident (what, when, rotation done) in a private channel, not in a public Issue.
+   owner's approval. Rewriting history (`git filter-repo`, `git filter-branch`) is done by humans only;
+   the hooks deny it to agents.
+5. If the exposure was an Issue, Pull Request or comment, a human edits or deletes it and asks GitHub
+   support to purge cached versions when needed; rotation still comes first.
+6. Review access logs of the affected service where available.
+7. Record the incident (what, when, rotation done) in a private channel, not in a public Issue.
 
 ## 4. Reporting a vulnerability
 
@@ -72,12 +75,29 @@ These rules are part of the global contract in [AGENTS.md](AGENTS.md#9-security-
 
 ## 6. Repository safeguards
 
-- [validate-repository](.github/workflows/validate-repository.yml) scans for common secret patterns
-  and secret-bearing file names on every push and Pull Request. It is a safety net with false
-  negatives; it does not replace these rules.
+Secrets and private data are stopped in layers, so that one missed check is caught by the next. All
+of them read one policy, [config/secret-patterns.tsv](config/secret-patterns.tsv) (secret rules,
+private-data rules and an allow list for documented placeholders), through generated copies.
+
+| Layer | Control | Stops |
+| --- | --- | --- |
+| GitHub | Secret scanning and push protection on every repository | Known provider secrets at push time, for anyone |
+| Claude Code `PreToolUse` | `guard-bash` | Secrets in any command; bypassing git hooks (`commit -n`, `-c core.hooksPath`, `GIT_CONFIG_*`); identity, remote and URL rewrites; `git add --force`; history rewrites; `push --delete/--tags/--mirror`; `gh gist`, `gh repo create/edit/fork`, `gh secret`, `gh auth token`; printing credentials |
+| Claude Code `PreToolUse` | `guard-bash` publishing check, `guard-publish` (MCP tools) | Secrets **and private data** (real emails, phone numbers, private IPs, personal home paths, card numbers, credential URLs) in Issues, Pull Requests, comments and reviews, including `--body-file` and `gh api` payloads |
+| Claude Code `PreToolUse` | `guard-files` | Secret-bearing file names and secrets in written content |
+| git hooks | `pre-commit`, `commit-msg`, `pre-push` | Staged secrets, `.env` and key files, files over 1 MB, conflict markers, secrets or private data in commit messages, secrets in pushed commits; also for humans who use the hooks |
+| Scripts | `secret_scan.py`; `checkpoint.py --mirror` and `pr_body.py` refuse findings; `run_checks.py` redacts logs | Leaks through helper scripts that publish or record output |
+| CI | gitleaks (pinned, checksum-verified) over the whole history; [validate-repository](.github/workflows/validate-repository.yml) policy scan | Anything that slipped through, with an independent rule set |
+
+Findings name the rule and the location, never the value. These checks are safety nets with false
+negatives (for example deliberately obfuscated values); they do not replace these rules.
+
+- [validate-repository](.github/workflows/validate-repository.yml) also checks secret-bearing file
+  names and that no file defines its own copy of the patterns.
 - [.gitignore](.gitignore) excludes `.env` files, key material and local agent credential
   directories.
-- Enable GitHub secret scanning and push protection on this repository and every target repository.
+- GitHub secret scanning and push protection are enabled on this repository; enable them on every
+  target repository ([docs/github-integration.md](docs/github-integration.md#repository-settings)).
 - Branch protection and human code owners ([.github/CODEOWNERS](.github/CODEOWNERS)) ensure that no
   change — including changes to these rules — is merged without human review.
 

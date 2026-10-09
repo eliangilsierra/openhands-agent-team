@@ -125,6 +125,17 @@ REQUIRED_FILES = [
     "templates/target-repo/ci/python.yml",
     "templates/target-repo/ci/go.yml",
     "templates/target-repo/ci/dotnet.yml",
+    "config/secret-patterns.tsv",
+    ".gitleaks.toml",
+    "templates/runtime/claude/hooks/guard-publish.mjs",
+    "templates/runtime/claude/hooks/secret-patterns.tsv",
+    "templates/runtime/claude/githooks/pre-commit",
+    "templates/runtime/claude/githooks/scan-lib.sh",
+    "templates/runtime/claude/githooks/secret-patterns.tsv",
+    "skills/development/scripts/secret_scan.py",
+    "skills/development/scripts/secret-patterns.tsv",
+    "templates/target-repo/.github/workflows/secret-scan.yml",
+    "templates/target-repo/.gitleaks.toml",
 ]
 
 REQUIRED_DIRS = ["agents", "skills", "docs", "docs/decisions", "templates",
@@ -193,17 +204,14 @@ MERMAID_TYPES = (
     "erDiagram", "gantt", "pie", "journey", "gitGraph", "mindmap", "timeline",
 )
 
-SECRET_PATTERNS = {
-    "GitHub token": re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b"),
-    "Anthropic API key": re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{20,}"),
-    "OpenAI-style API key": re.compile(r"\bsk-(proj-)?[A-Za-z0-9]{32,}"),
-    "AWS access key": re.compile(r"\b(AKIA|ASIA)[0-9A-Z]{16}\b"),
-    "Slack token": re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}"),
-    "Google API key": re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b"),
-    "Private key block": re.compile(r"-----BEGIN (RSA |EC |OPENSSH |DSA |PGP |ENCRYPTED )?PRIVATE KEY-----"),
-    "Hard-coded password": re.compile(
-        r"(?i)\b(password|passwd|secret|api_key|apikey|token)\s*[:=]\s*[\"'][^\"'\s<>{}$]{8,}[\"']"),
-}
+# Secret patterns come from the team's single policy (Issue #15), read with the same scanner the agents use.
+POLICY = ROOT / "config" / "secret-patterns.tsv"
+sys.path.insert(0, str(ROOT / "skills" / "development" / "scripts"))
+import secret_scan  # noqa: E402  (repository script, standard library only)
+
+secret_scan._POLICY = secret_scan.load_policy(POLICY)
+# A pattern definition outside the policy means two lists that can drift apart.
+DUPLICATED_POLICY = re.compile(r"gh\[pousr\]|sk-ant-\[|AKIA\|ASIA")
 
 FORBIDDEN_FILE_NAMES = re.compile(
     r"(^|/)(\.env(\.(?!example$|sample$|template$)[^/]+)?|id_rsa|id_ed25519|\.credentials\.json|"
@@ -222,7 +230,7 @@ SOURCE_EXTENSIONS = {
 ALLOWED_SOURCE_FILES = {"scripts/validate_repository.py", "scripts/test_workflows.mjs", "scripts/generate_runtime.py"}
 # Operational runtime files (ADR-0002): Claude Code hooks installed in ~/.claude/hooks of the runtime.
 # Unit tests and their fixture repositories (ADR-0003).
-ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/", "tests/")
+ALLOWED_SOURCE_PREFIXES = ("templates/runtime/claude/hooks/", "templates/runtime/claude/githooks/", "tests/")
 # Skill helper scripts (ADR-0003): skills/<name>/scripts/*.py, Python standard library only.
 SKILL_SCRIPT = re.compile(r"^skills/[a-z0-9-]+/scripts/[a-z0-9_]+\.py$")
 
@@ -230,7 +238,7 @@ MODELS = {"haiku", "sonnet", "opus"}
 EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 LEVELS_ALLOWED = {"R0", "R1", "R2", "R3", "R4"}
 
-TEXT_EXTENSIONS = {".md", ".yml", ".yaml", ".json", ".txt", ".py", ".mjs", ""}
+TEXT_EXTENSIONS = {".md", ".yml", ".yaml", ".json", ".txt", ".py", ".mjs", ".sh", ".tsv", ".toml", ""}
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
 
 
@@ -936,12 +944,10 @@ def check_hygiene(report: Report, files: list[Path]) -> None:
                                                                            ".gitignore", ".gitattributes"):
             continue
         text = read_safely(path)
-        for label, pattern in SECRET_PATTERNS.items():
-            if path.resolve() == SELF:
-                continue
-            for match in pattern.finditer(text):
-                line = text.count("\n", 0, match.start()) + 1
-                report.error(f"{name}:{line}: possible {label} (value not shown)")
+        for finding in secret_scan.scan(text, ("secret",)):
+            report.error(f"{name}:{finding.line}: possible {finding.rule} (value not shown)")
+        if path.suffix != ".tsv" and not name.startswith("tests/") and DUPLICATED_POLICY.search(text):
+            report.error(f"{name}: defines secret patterns; use config/secret-patterns.tsv and its generated copies")
         if path.resolve() != SELF and name != "LICENSE":
             for number, line in enumerate(text.splitlines(), start=1):
                 if PLACEHOLDER_PATTERNS.search(line):

@@ -29,6 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_checks  # noqa: E402  (sibling module)
+import secret_scan  # noqa: E402  (sibling module: the team's single pattern policy)
 
 BRANCH = re.compile(r"^(feature|bugfix|refactor|chore|docs)/(\d+)-[a-z0-9]+(-[a-z0-9]+){0,4}$")
 CHECKLIST = [
@@ -121,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", help="write the body to this file")
     args = parser.parse_args(argv)
     body = render(args, args.branch or current_branch())
+    secret_scan.refuse_if_found(body, "the Pull Request body")
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(body, encoding="utf-8")

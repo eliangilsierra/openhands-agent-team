@@ -42,6 +42,7 @@ schema_version: 1
 
 baseline_hard_controls:
   github:
+    - Secret scanning and push protection are enabled on this repository and every target repository
     - "main is protected: Pull Request required, direct pushes and force pushes blocked, deletions blocked"
     - At least one approving review from a human code owner is required (CODEOWNERS lists humans only)
     - Approval of the most recent reviewable push is required, so a push after approval invalidates it
@@ -54,7 +55,9 @@ baseline_hard_controls:
     - Credentials are stored only as OpenHands secrets, never in repository files
   claude_code:
     - PreToolUse hooks deny pushes to main, merges, approvals, force pushes, identity changes and per-level writes; they run in every permission mode and inside subagents
-    - Git hooks (commit-msg, pre-push) enforce Conventional Commits, branch names and a secret scan even outside Claude Code
+    - Git hooks (pre-commit, commit-msg, pre-push) enforce Conventional Commits, branch names and the secret and private-data policy even outside Claude Code
+    - PreToolUse hooks deny git safety-net bypasses (commit -n, core.hooksPath, GIT_CONFIG_*, remotes, add --force, history rewrites) and publishing secrets or private data to GitHub (Bash and MCP tools)
+    - config/secret-patterns.tsv is the single pattern policy; gitleaks scans the whole history in CI
 
 # Paths no agent may modify without an Issue that explicitly authorises it
 # and human review (team-configuration-change approval point).

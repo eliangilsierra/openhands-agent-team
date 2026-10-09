@@ -21,6 +21,8 @@ venv/
 node_modules/
 actionlint
 actionlint.exe
+gitleaks
+gitleaks_*.tar.gz
 
 # Editors and OS
 .vscode/

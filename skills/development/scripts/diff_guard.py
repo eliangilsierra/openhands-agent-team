@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Review your own diff before every push: secrets, weakened tests, scope creep, debug code.
 
+Secrets are detected with secret_scan.py (the team policy in secret-patterns.tsv).
+
 Compares the working tree (committed and uncommitted changes) with the merge base of
 --base (default origin/main) and reports findings:
 
@@ -25,19 +27,11 @@ import re
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
-# Kept as concatenations so this file does not trip secret and placeholder scanners itself.
-SECRETS = {
-    "GitHub token": r"\b(gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b",
-    "Anthropic API key": r"\bsk-" + r"ant-[A-Za-z0-9_\-]{20,}",
-    "OpenAI-style API key": r"\bsk-(proj-)?[A-Za-z0-9]{32,}",
-    "AWS access key": r"\b(AKIA|ASIA)[0-9A-Z]{16}\b",
-    "Slack token": r"\bxox[abprs]-[A-Za-z0-9-]{10,}",
-    "Google API key": r"\bAIza[0-9A-Za-z_\-]{35}\b",
-    "Private key block": r"-----BEGIN (?:[A-Z]+ )*" + r"PRIVATE KEY-----",
-    "JWT": r"\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}",
-    "Hard-coded credential": r"(?i)\b(password|passwd|secret|api_?key|token|client_secret)\b[\"']?\s*[:=]\s*[\"'][^\"'\s<>{}$]{8,}[\"']",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import secret_scan  # noqa: E402  (sibling module: the team's single pattern policy)
+
 SECRET_FILES = re.compile(r"(^|/)(\.env(\.(?!example$|sample$|template$)[^/]+)?|id_rsa[^/]*|id_ed25519[^/]*|"
                           r"[^/]+\.(pem|key|p12|pfx|jks|keystore)|\.credentials\.json|credentials\.json)$", re.IGNORECASE)
 TEST_PATH = re.compile(r"(^|/)(tests?|__tests__|spec|specs|androidTest|testFixtures)/|"
@@ -143,7 +137,6 @@ def extension(path: str) -> str:
 def scan(files: list[FileDiff], touches: list[str], sizes: dict[str, int] | None = None) -> list[Finding]:
     sizes = sizes or {}
     findings: list[Finding] = []
-    secrets = {name: re.compile(pattern) for name, pattern in SECRETS.items()}
     changed = {f.path for f in files}
     for diff in files:
         path, is_test = diff.path, bool(TEST_PATH.search(diff.path))
@@ -169,9 +162,8 @@ def scan(files: list[FileDiff], touches: list[str], sizes: dict[str, int] | None
                                         f"lockfile changed without {manifest}; make sure no unplanned dependency moved"))
         debug = re.compile(DEBUG[extension(path)]) if extension(path) in DEBUG and not is_test else None
         for number, text in diff.added:
-            for name, pattern in secrets.items():
-                if pattern.search(text):
-                    findings.append(Finding("secret", "block", path, number, f"possible {name} (value not shown)"))
+            for found in secret_scan.scan(text, ("secret",)):
+                findings.append(Finding("secret", "block", path, number, f"possible {found.rule} (value not shown)"))
             if CONFLICT.match(text):
                 findings.append(Finding("conflict-marker", "block", path, number, "unresolved merge conflict marker"))
             if FOCUSED.search(text):

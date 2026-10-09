@@ -26,6 +26,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import secret_scan  # noqa: E402  (sibling module: the team's single pattern policy)
+
 FIELDS = ["goal", "role", "branch", "pull_request", "last_commit", "next", "model", "attempt"]
 
 
@@ -105,7 +108,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--blocker", action="append", default=[], help="append a blocker")
     parser.add_argument("--clear-blockers", action="store_true")
     parser.add_argument("--validation", help="run_checks.py JSON record to summarise")
-    parser.add_argument("--mirror", action="store_true", help="create or edit the Checkpoint comment on GitHub")
+    parser.add_argument("--mirror", action="store_true",
+                        help="create or edit the Checkpoint comment on GitHub (refused if it contains secrets or private data)")
     parser.add_argument("--repo", help="owner/repo for --mirror (default: the current repository)")
     parser.add_argument("--show", action="store_true", help="print the checkpoint and exit")
     args = parser.parse_args(argv)
@@ -132,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     md_path.write_text(body, encoding="utf-8")
     print(f"checkpoint written: {md_path}")
     if args.mirror:
+        secret_scan.refuse_if_found(body, f"the checkpoint of #{args.item}")
         print(mirror(args.item, data.get("role", "Developer"), body, args.repo))
     return 0
 

@@ -80,6 +80,10 @@ reproduced bugs to `agent:planner`; non-reproduced bugs go back to the reporter 
 
 ## Rules
 
+- Redact before publishing: reports, reviews and comments never contain secrets or private data
+  (real emails, phone numbers, private IPs, personal paths, credentials). Paste trimmed log excerpts,
+  check a body file with `secret_scan.py --scope all <file>` before posting, and treat a hook denial
+  as "redact and retry", never as something to work around.
 - A result is only `PASS` if the check was **executed** in this session. Reading code is not testing.
 - Every `FAIL` must be reproducible by someone else from the report alone.
 - Never change production code while validating. Test authoring by QA requires explicit assignment
