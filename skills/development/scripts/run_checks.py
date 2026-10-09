@@ -28,21 +28,17 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import secret_scan  # noqa: E402  (sibling module: the team's single pattern policy)
+
 SHELL_BUILTINS = {"cd", "export", "set", "test", "[", "echo", "exit", "true", "false", "source", ".", "env"}
 ORDER = ["install", "format", "lint", "typecheck", "test", "build", "verify"]
 DEFAULT_CHECKS = ["format", "lint", "typecheck", "test", "build"]
-REDACT = [
-    re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
-    re.compile(r"\bsk-[A-Za-z0-9_\-]{20,}"),
-    re.compile(r"\b(AKIA|ASIA)[0-9A-Z]{16}\b"),
-    re.compile(r"(?i)\b(authorization:\s*bearer)\s+\S+"),
-]
 
 
 def redact(text: str) -> str:
-    for pattern in REDACT:
-        text = pattern.sub("[REDACTED]", text)
-    return text
+    """Replace every secret of the team policy, so logs and evidence never carry credentials."""
+    return secret_scan.redact(text)
 
 
 def last_int(pattern: str, text: str) -> int | None:

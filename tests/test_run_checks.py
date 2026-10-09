@@ -49,7 +49,7 @@ class RunAndCompare(unittest.TestCase):
         failing = run_checks.run("test", self.cmd(f"import sys; print('{secret}'); sys.exit(1)"), self.dir, 30, 10, None)
         self.assertEqual(failing["status"], "FAIL")
         self.assertNotIn(secret, " ".join(failing["tail"]))
-        self.assertIn("[REDACTED]", " ".join(failing["tail"]))
+        self.assertIn("[REDACTED:github-token]", " ".join(failing["tail"]))
         missing = run_checks.run("lint", "definitely-not-a-command-xyz", self.dir, 30, 10, None)
         self.assertEqual(missing["status"], "BLOCKED")
         slow = run_checks.run("build", self.cmd("import time; time.sleep(5)"), self.dir, 1, 10, None)
