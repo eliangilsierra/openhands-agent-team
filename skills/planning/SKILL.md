@@ -50,7 +50,10 @@ and trace back to requirements so nothing is lost and nothing is added.
    [stack-routing](../stack-routing/SKILL.md)). **One task, one stack:** when the result is `split`,
    split the slice by stack (for example the API in `developer-java-spring`, the page in
    `developer-nextjs` with `Depends on` the API task). Keep a cross-stack task only when it cannot be
-   split without breaking the build, and then write `Stack: developer` and say why.
+   split without breaking the build, and then write `Stack: developer` and say why. Add
+   `Complexity: S|M|L`: S is a local change with obvious tests, M a normal feature slice, L concurrency,
+   security-sensitive code, a data migration, changes across several modules, or a task that already
+   failed once. L tasks run on Opus; the rest on Sonnet.
 6. **Write each task Issue** with the sections below. Copy the minimum context needed and link the
    rest. Assign `AC` IDs from the feature (and task-specific ones, `T-AC-n`, where a task needs
    finer criteria).
@@ -75,7 +78,7 @@ and trace back to requirements so nothing is lost and nothing is added.
    - [ ] Acceptance criteria are testable (Given/When/Then or an exact check).
    - [ ] Testing requirements name the test level(s) and the cases.
    - [ ] Technical approach is consistent with the architecture and Accepted ADRs.
-   - [ ] Technical approach has `Touches:` and `Stack:` lines; the task belongs to one stack.
+   - [ ] Technical approach has `Touches:`, `Stack:` and `Complexity:` lines; the task belongs to one stack.
    - [ ] Dependencies are closed or explicitly allow parallel work.
    - [ ] No open question remains that would block implementation.
    - [ ] Size fits one reviewable Pull Request.

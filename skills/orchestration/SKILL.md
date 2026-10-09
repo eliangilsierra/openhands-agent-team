@@ -73,8 +73,9 @@ Repeat until every item is done or waiting on a human:
    - requirements (and accepted ADRs) ready → `planner`;
    - `ai-ready` tasks → the Developer specialist chosen by
      `select_specialist.py --profile .agent-state/stack-profile.json --issue <n>` (`developer-react`,
-     `developer-java-spring`, ...; the generalist `developer` on `fallback`), within the parallelism
-     rules. A `split` decision sends the task back to `planner` with the candidates instead;
+     `developer-java-spring`, ...; the generalist `developer` on `fallback`), with the `model` it returns
+     (`opus` for `Complexity: L`, otherwise the role's model) as the delegation's model, within the
+     parallelism rules. A `split` decision sends the task back to `planner` with the candidates instead;
    - new or updated pull request → `qa-engineer`; QA `PASS` → `code-reviewer` and `security-reviewer`
      **in parallel**; both `NO BLOCKING FINDINGS` → add `needs-human` (human gate: merge);
    - `changes-requested` or QA `FAIL` → the same specialist on the same branch again (cycle + 1,
@@ -101,7 +102,7 @@ Repository directory: <path> (developers: your worktree; create branch <prefix>/
 Checkpoint: .agent-state/items/<n>.md (resume from it if it exists)
 Inputs: <links to requirements, ADRs, plan, QA report, review findings>
 Constraints: <touches, what not to change, decisions already made>
-Specialist: <id> (<decision>: <reason>) · Skills: <skills>   (developers only, from select_specialist.py)
+Specialist: <id> (<decision>: <reason>) · Skills: <skills> · Complexity: <S|M|L>   (developers only, from select_specialist.py)
 Done when: <the stage's Definition of Done in one or two lines>
 Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 ```
@@ -123,7 +124,8 @@ Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 1. Note the start time of each delegation on the board. The hooks write
    `.agent-state/heartbeat/<agent_id>.json` on every tool call.
 2. Escalate when one of these happens:
-   - the result is `PARTIAL` (turn limit reached);
+   - the result is `PARTIAL` because the turn limit was reached (a context-budget `PARTIAL` is not an
+     escalation, see section 7);
    - no heartbeat for 10 minutes (stalled): stop it with `TaskStop`;
    - the role's `time_budget_minutes` is exceeded and the checkpoint shows no progress since the last check;
    - the same validation fails twice (for example, the same failing test).
@@ -134,7 +136,20 @@ Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 4. One escalation per item. If the escalated agent also fails, add `blocked` and `needs-human` with a
    summary of what was tried.
 
-### 7. Recovery
+### 7. Context and usage
+
+- Keep your own context small: the board, briefs and result contracts. Query GitHub with
+  `--json <fields> --jq` for the fields a decision needs; never read full diffs, logs or long threads.
+  Auto-compaction starts near 140K tokens; the hooks keep the board across it.
+- A result `PARTIAL` with `NEXT: continue from the checkpoint (context budget)` came from the context
+  guard: delegate the same brief to a **fresh** subagent on the **same** model. It is not an escalation.
+- Never delegate with a Fable or Mythos model; the `guard-agent` hook denies it.
+- When an item finishes, add the one-line usage summary to its Checkpoint comment
+  (`usage_report.py --item <n> --format github`), and when a feature finishes, post the same line for the
+  feature on its Issue. The detailed ledger stays in `~/.claude/usage/`; never post it.
+- When the person asks who spent what, answer from `usage_report.py --by agent|model|item|repo|day`.
+
+### 8. Recovery
 
 | What stopped | What you do |
 | --- | --- |
@@ -143,7 +158,7 @@ Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 | Usage limit or API error | `paused.json` exists on the next start: resume from checkpoints |
 | The whole conversation | New conversation, `resume #<issue>`: rebuild from the "Team board" and "Checkpoint" comments and the branches on GitHub |
 
-### 8. Reporting to the person
+### 9. Reporting to the person
 
 Talk to the person in Spanish, briefly. When you stop, list what waits on them with links (ADR pull
 requests to accept, pull requests to merge, `needs-human` questions), what is still running, and the
