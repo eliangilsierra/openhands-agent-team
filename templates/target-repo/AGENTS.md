@@ -1,6 +1,6 @@
-# <project name>
+# {{project_name}}
 
-<One or two sentences: what the project is and who uses it.>
+Describe the project in one or two sentences: what it does and who uses it.
 
 ## Project facts
 
@@ -13,11 +13,12 @@ Generate this section with `detect_stack.py . --format md` (team repository,
 - Test: `<command>`
 - Build: `<command>`
 - Layout: <where the source, the tests and the documentation live>
+- Branches: `develop` is the integration branch and the default branch; `main` holds releases only
 
 ## Team contract
 
 This project is worked on by the agent team defined in
-`https://github.com/<owner>/openhands-agent-team`. Its `AGENTS.md` applies in full; read it with
+`https://github.com/{{team_repo}}`. Its `AGENTS.md` applies in full; read it with
 `gh api` (do not clone it into your workspace). The essentials, repeated here because they are the
 rules most often broken:
 
@@ -27,16 +28,19 @@ rules most often broken:
   none of them is skipped; after QA passes, the two reviews run in parallel.
 - **Work in the conversation's current directory** (the workspace the OpenHands interface shows).
   Clone this repository there.
-- **One task Issue = one branch = one Pull Request.** Branch `<feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>`;
-  the Pull Request has exactly one `Closes #<issue-number>`.
+- **One task Issue = one branch = one Pull Request.** Branch `<feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>`
+  created from `origin/develop`; the Pull Request targets `develop` and has exactly one
+  `Closes #<issue-number>`.
 - **Conventional Commits** for every commit and every Pull Request title:
   `<type>(<scope>): <description>` with type `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
   `test`, `build`, `ci`, `chore` or `revert`.
-- **Never run `git merge` into `main`, push to `main`, merge or approve a Pull Request.** A human
-  merges on GitHub with squash.
+- **Never push to `develop` or `main`, merge into them locally, or merge or approve a Pull Request.**
+  A human squash-merges task Pull Requests into `develop` on GitHub. Releases go from `develop` to
+  `main` through a Pull Request that only a human opens and merges (with a merge commit).
 - **QA reports and reviews are Pull Request comments and reviews**, never files in the repository. A
   `FAIL` or `CHANGES REQUESTED` verdict adds the `changes-requested` label, which blocks the merge.
-- Do not change the configured git identity. Never commit secrets.
+- Do not change the configured git identity or bypass git hooks. Never commit secrets, and never
+  publish secrets or private data in Issues, Pull Requests, comments or commit messages.
 
 ## Roles and skills
 

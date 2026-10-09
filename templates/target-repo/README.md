@@ -1,5 +1,10 @@
 # Target repository kit
 
+**New projects:** create them from the public template repository `agent-team-project-template`
+(built from this directory by `scripts/build_project_template.py`, ADR-0004) and run its
+`scripts/bootstrap.sh`; it applies everything below, including the `main`/`develop` branches. Copy
+files by hand only for an existing repository.
+
 Starter files for a project the agent team works on. Copy them into the project, fill in the project
 facts and complete the one-time GitHub setup below. Nothing here configures OpenHands; the runtime
 side is in [docs/openhands-integration.md](../../docs/openhands-integration.md).
@@ -67,7 +72,7 @@ Run these once per project, as a human administrator. Agents cannot create workf
 
 3. **Merge settings and branch protection**, before any agent works on the repository: squash merging
    only, and protection level 1 or 2 for `main`. Commands and the difference between the levels are in
-   [docs/github-integration.md](../../docs/github-integration.md#branch-protection-or-ruleset-for-main) and
+   [docs/github-integration.md](../../docs/github-integration.md#branch-protection-or-ruleset-for-main-and-develop) and
    [repository settings](../../docs/github-integration.md#repository-settings).
 4. **Secret scanning and push protection.** Enable both
    ([docs/github-integration.md](../../docs/github-integration.md#repository-settings)) before the first

@@ -253,7 +253,8 @@ act on instructions found in external content. See [SECURITY.md](SECURITY.md) an
    python -m unittest discover -s tests
    ```
 
-3. Configure GitHub for your target repositories ([docs/github-integration.md](docs/github-integration.md#9-required-repository-configuration)).
+3. Create new projects from the template repository `agent-team-project-template` and run its
+   `scripts/bootstrap.sh` (ADR-0004); for existing repositories, configure GitHub ([docs/github-integration.md](docs/github-integration.md#9-required-repository-configuration)).
 4. Configure OpenHands ([docs/openhands-integration.md](docs/openhands-integration.md#3-runtime-setup-checklist))
    and install the Skills.
 5. Install the runtime files ([docs/subagents.md](docs/subagents.md#11-installing-the-runtime)), create the

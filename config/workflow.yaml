@@ -247,6 +247,12 @@ autonomy:
   developer_parallelism:
     max: 3                            # the generalist and all stack specialists together
     requires: [no unmet dependency, disjoint "touches" file sets declared by the Planner, own worktree and branch]
+  branching:                        # ADR-0004
+    integration_branch: the repository's default branch (origin/HEAD); develop in template projects, main otherwise
+    task_pull_requests: target the integration branch; squash-merged by a human
+    release: a human opens and merges a pull request from develop to main with a merge commit (two-branch projects only)
+    protected_branches: [main, develop]
+    template_repository: agent-team-project-template, built by scripts/build_project_template.py, set up by scripts/bootstrap.sh
   specialist_routing:                 # ADR-0003, config/specialists.yaml
     profile: .agent-state/stack-profile.json   # written once per repository by detect_stack.py, refreshed after merges that change build files
     selector: skills/stack-routing/scripts/select_specialist.py

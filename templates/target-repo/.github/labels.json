@@ -1,0 +1,62 @@
+[
+  {
+    "name": "ai-ready",
+    "color": "0e8a16",
+    "description": "Task passed the readiness checklist and can be implemented by an agent."
+  },
+  {
+    "name": "agent:product",
+    "color": "1d76db",
+    "description": "Owned by the Product Manager agent."
+  },
+  {
+    "name": "agent:research",
+    "color": "1d76db",
+    "description": "Owned by the Researcher agent."
+  },
+  {
+    "name": "agent:architect",
+    "color": "1d76db",
+    "description": "Owned by the Architect agent."
+  },
+  {
+    "name": "agent:planner",
+    "color": "1d76db",
+    "description": "Owned by the Planner agent."
+  },
+  {
+    "name": "agent:developer",
+    "color": "1d76db",
+    "description": "Owned by the Developer agent."
+  },
+  {
+    "name": "agent:qa",
+    "color": "1d76db",
+    "description": "Owned by the QA Engineer agent."
+  },
+  {
+    "name": "agent:reviewer",
+    "color": "1d76db",
+    "description": "Owned by the Code Reviewer agent."
+  },
+  {
+    "name": "agent:security",
+    "color": "1d76db",
+    "description": "Owned by the Security Reviewer agent."
+  },
+  {
+    "name": "blocked",
+    "color": "b60205",
+    "description": "Work cannot continue until a named dependency or decision is resolved."
+  },
+  {
+    "name": "needs-human",
+    "color": "d93f0b",
+    "description": "A human decision or approval is required."
+  },
+  {
+    "name": "changes-requested",
+    "color": "e99695",
+    "description": "QA or a reviewer requested changes; the pull request cannot be merged until it is removed."
+  }
+]

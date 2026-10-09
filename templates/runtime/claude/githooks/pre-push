@@ -13,7 +13,7 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
   [ -z "$remote_ref" ] && continue
   branch="${remote_ref#refs/heads/}"
   case "$branch" in
-    main|master)
+    main|master|develop)
       echo "pre-push: nobody pushes to $branch; open a pull request" >&2
       status=1
       continue

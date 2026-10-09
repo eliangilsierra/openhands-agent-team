@@ -92,7 +92,7 @@ export const LEVELS = {
 };
 
 export const BRANCH_PREFIXES = { R3: ['docs/'], R4: ['feature/', 'bugfix/', 'refactor/', 'chore/'] };
-export const PROTECTED_BRANCHES = ['main', 'master'];
+export const PROTECTED_BRANCHES = ['main', 'master', 'develop']; // develop: integration branch of template projects (ADR-0004)
 
 export function levelOf(agentType) {
   if (!agentType) return 'R0';
@@ -284,7 +284,7 @@ export function checkBash(command, level, cwd) {
     if (sub === 'push') {
       if (args.some((a) => a === '-f' || a.startsWith('--force') || /^\+/.test(a))) reasons.push('force pushes are not allowed');
       const branches = pushedBranches(args, cwd);
-      if (branches.some((b) => PROTECTED_BRANCHES.includes(b))) reasons.push('nobody pushes to main or master');
+      if (branches.some((b) => PROTECTED_BRANCHES.includes(b))) reasons.push('nobody pushes to main, master or develop; open a pull request');
       const prefixes = BRANCH_PREFIXES[level];
       if (prefixes && branches.some((b) => b && !PROTECTED_BRANCHES.includes(b) && !prefixes.some((p) => b.startsWith(p)))) {
         reasons.push(`level ${level} may only push branches starting with ${prefixes.join(', ')}`);
@@ -292,7 +292,7 @@ export function checkBash(command, level, cwd) {
     }
     if (sub === 'merge' && !args.includes('--abort')) {
       const branch = currentBranch(cwd);
-      if (PROTECTED_BRANCHES.includes(branch) || branch === '') reasons.push('never merge into main or master; merge main into your own branch only');
+      if (PROTECTED_BRANCHES.includes(branch) || branch === '') reasons.push('never merge into main, master or develop; merge the integration branch into your own branch only');
     }
     const writes = ['commit', 'push', 'merge', 'rebase', 'tag', 'cherry-pick', 'revert', 'am'];
     const createsBranch = (sub === 'checkout' && args.includes('-b')) || (sub === 'switch' && args.includes('-c')) || (sub === 'branch' && args.some((a) => /^-[dDmM]$/.test(a)));

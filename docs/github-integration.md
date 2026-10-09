@@ -141,7 +141,13 @@ Workflows never depend on OpenHands being online. See [automation.md](automation
 
 Configure these settings in **every repository the agents work on** (and in this repository):
 
-### Branch protection or ruleset for `main`
+### Branch protection or ruleset for `main` (and `develop`)
+
+Projects created from the project template are configured by its `scripts/bootstrap.sh` (ADR-0004):
+rulesets `protect-main` (merge commits only, for releases from `develop`) and `protect-develop`
+(squash only, linear history), both with pull requests, the required checks `pr-conventions`, `ci`
+and `secret-scan`, no force pushes and no deletion, and `develop` as the default branch. The
+settings below apply to single-branch repositories and describe the same protection levels.
 
 Protection is available on public repositories on every plan; on private repositories it requires a
 paid plan (check with `gh api repos/<owner>/<repo>/branches/main/protection`). There are two levels:

@@ -88,6 +88,19 @@ permission entry.
    concatenation so no scanner sees a literal.
 4. Never add an allow rule to make a real finding pass: remove the value and rotate the credential.
 
+## Updating the project template
+
+The public template repository is generated from `templates/target-repo/` (ADR-0004). After a change
+to the kit is merged:
+
+```bash
+gh repo clone <owner>/agent-team-project-template /path/to/template && cd /path/to/template
+git switch -c chore/<issue-number>-sync-kit origin/develop
+python <team-repo>/scripts/build_project_template.py --out . --owner <owner> --holder "<name>"
+git add -A && git commit -m "chore: sync with the team kit" && git push -u origin HEAD
+gh pr create --base develop --fill
+```
+
 ## Adding a helper script
 
 - Place it in `skills/<skill>/scripts/<name>.py`: Python 3.10+, standard library only, a docstring

@@ -79,7 +79,10 @@ ADR-0003).
 
 ## 5. Git workflow
 
-1. Every change to a repository happens on a branch and reaches `main` through a Pull Request.
+1. Every change to a repository happens on a branch and reaches the **integration branch** through a
+   Pull Request. The integration branch is the repository's default branch: `develop` in projects
+   created from the project template, `main` in single-branch projects (ADR-0004). Read it with
+   `git symbolic-ref refs/remotes/origin/HEAD`; never assume it. Branches start from it.
 2. One branch and one Pull Request per task Issue. Never implement several task Issues on one
    branch or in one Pull Request, and never combine unrelated Issues.
 3. Commit messages and Pull Request titles follow
@@ -94,10 +97,12 @@ ADR-0003).
    unless the work item asks for them.
 5. Keep history readable: small, coherent commits; never rewrite history that others have
    reviewed; never force-push to a branch that has review comments unless the reviewer asked for it.
-6. **Never run `git merge` into `main`, resolve conflicts by committing to `main`, or push to
-   `main`.** Integration happens only when a human merges the Pull Request on GitHub (the
-   repository allows squash merging only, so `main` keeps one Conventional Commit per Pull Request).
-   To resolve conflicts, update your own branch and push it.
+6. **Never run `git merge` into `main` or `develop`, resolve conflicts by committing to them, or push
+   to them.** Integration happens only when a human merges the Pull Request on GitHub (task Pull
+   Requests are squash-merged, so the integration branch keeps one Conventional Commit per Pull
+   Request). In two-branch projects, releases go from `develop` to `main` through a Pull Request that
+   only a human opens and merges. To resolve conflicts, merge the integration branch into your own
+   branch and push it.
 
 ## 6. Branching rules
 
@@ -110,7 +115,7 @@ ADR-0003).
 | `docs/` | Documentation, architecture documents, ADRs, research reports only | `docs/<issue-number>-<short-description>` |
 
 - `<short-description>` is lowercase kebab-case, at most five words: `feature/42-login-rate-limit`.
-- **No agent ever commits or pushes to `main`** or to any other protected branch.
+- **No agent ever commits or pushes to `main`, `develop`** or any other protected branch.
 - Branch write access per agent is defined in [`config/permissions.yaml`](config/permissions.yaml).
 
 ## 7. Pull Request rules
@@ -229,7 +234,7 @@ unblock it.
 
 All agents must never:
 
-- Commit or push to `main` or any protected branch, merge a Pull Request (on GitHub or with a local
+- Commit or push to `main`, `develop` or any protected branch, merge a Pull Request (on GitHub or with a local
   `git merge`), enable auto-merge, or submit an `APPROVE` review.
 - Implement more than one task Issue on a branch or in a Pull Request.
 - Take another role, run the next stage, or process another work item in the same agent context

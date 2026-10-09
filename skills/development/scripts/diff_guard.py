@@ -4,14 +4,14 @@
 Secrets are detected with secret_scan.py (the team policy in secret-patterns.tsv).
 
 Compares the working tree (committed and uncommitted changes) with the merge base of
---base (default origin/main) and reports findings:
+--base (default: the integration branch, origin/HEAD) and reports findings:
 
     block   must be fixed before pushing (exit code 1), unless allowed with --allow <rule>
             and justified in the Pull Request
     warn    must be looked at; fix it or explain it in the Pull Request
 
 Usage:
-    python diff_guard.py [--base origin/main] [--touches "src/api/**,tests/api/**"]
+    python diff_guard.py [--base origin/develop] [--touches "src/api/**,tests/api/**"]
                          [--allow rule] [--json] [--diff-file FILE]
 
 Secret values are never printed: only the file, the line and the kind of secret.
@@ -30,6 +30,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import branches  # noqa: E402  (sibling module: the integration branch, ADR-0004)
 import secret_scan  # noqa: E402  (sibling module: the team's single pattern policy)
 
 SECRET_FILES = re.compile(r"(^|/)(\.env(\.(?!example$|sample$|template$)[^/]+)?|id_rsa[^/]*|id_ed25519[^/]*|"
@@ -198,7 +199,7 @@ def collect(base: str) -> tuple[str, dict[str, int], list[str]]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--base", default="origin/main", help="branch the Pull Request targets (default origin/main)")
+    parser.add_argument("--base", help="branch the Pull Request targets (default: the integration branch, origin/HEAD)")
     parser.add_argument("--touches", default="", help="comma-separated globs from the task's Touches line")
     parser.add_argument("--allow", action="append", default=[], help="rule to downgrade to warn (justify it in the PR)")
     parser.add_argument("--diff-file", help="read a unified diff from this file instead of git (tests, CI)")
@@ -209,7 +210,7 @@ def main(argv: list[str] | None = None) -> int:
         with open(args.diff_file, encoding="utf-8") as handle:
             diff, sizes, untracked = handle.read(), {}, []
     else:
-        diff, sizes, untracked = collect(args.base)
+        diff, sizes, untracked = collect(args.base or branches.integration_ref())
     touches = [t.strip() for t in args.touches.split(",") if t.strip()]
     findings = scan(parse_diff(diff), touches, sizes)
     for path in untracked:

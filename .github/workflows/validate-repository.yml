@@ -75,7 +75,8 @@ jobs:
       - name: Check git hooks with shellcheck
         run: |
           shellcheck -x templates/runtime/claude/githooks/commit-msg templates/runtime/claude/githooks/pre-push \
-            templates/runtime/claude/githooks/pre-commit templates/runtime/claude/githooks/scan-lib.sh
+            templates/runtime/claude/githooks/pre-commit templates/runtime/claude/githooks/scan-lib.sh \
+            templates/target-repo/scripts/bootstrap.sh
 
       - name: Scan the history for secrets with gitleaks
         env:

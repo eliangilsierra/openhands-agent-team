@@ -45,7 +45,19 @@ jobs:
             const isConventional = (line) => line.length <= 72 && conventional.test(line);
             const form = '<type>(<scope>): <description> (72 characters at most), for example "feat(timer): add rest countdown (#42)"';
 
-            if (!automated) {
+            // ADR-0004: task Pull Requests target the integration branch (the default branch: develop in
+            // projects created from the template, main otherwise); a human releases develop -> main.
+            const base = pr.base.ref;
+            const integration = (context.payload.repository || {}).default_branch || base;
+            const release = branch === 'develop' && base === 'main';
+            if (release && !isConventional(title)) {
+              problems.push(`The release title "${title}" does not follow Conventional Commits, for example "chore(release): 1.4.0".`);
+            }
+            if (!automated && !release && base !== integration) {
+              problems.push(`Task Pull Requests target the integration branch "${integration}", not "${base}". Only the release Pull Request goes from develop to main.`);
+            }
+
+            if (!automated && !release) {
               if (!isConventional(title)) {
                 problems.push(`The title "${title}" does not follow Conventional Commits: ${form}.`);
               }
