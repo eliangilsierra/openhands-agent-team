@@ -8,7 +8,14 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0",
     "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1",
     "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "4",
-    "TEAM_REPO": "<owner>/openhands-agent-team"
+    "TEAM_REPO": "<owner>/openhands-agent-team",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-5-5",
+    "CLAUDE_CODE_EFFORT_LEVEL": "medium",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70",
+    "BASH_MAX_OUTPUT_LENGTH": "15000"
   },
   "hooks": {
     "PreToolUse": [
@@ -38,6 +45,15 @@
             "command": "node \"$HOME/.claude/hooks/guard-publish.mjs\""
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/guard-agent.mjs\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -46,6 +62,10 @@
           {
             "type": "command",
             "command": "node \"$HOME/.claude/hooks/heartbeat.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/context-guard.mjs\""
           }
         ]
       }
@@ -66,6 +86,10 @@
           {
             "type": "command",
             "command": "node \"$HOME/.claude/hooks/pre-compact.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/usage-ledger.mjs\""
           }
         ]
       }
@@ -76,6 +100,10 @@
           {
             "type": "command",
             "command": "node \"$HOME/.claude/hooks/subagent-stop.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/usage-ledger.mjs\""
           }
         ]
       }
@@ -86,6 +114,27 @@
           {
             "type": "command",
             "command": "node \"$HOME/.claude/hooks/stop-failure.mjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/usage-ledger.mjs\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/usage-ledger.mjs\"",
+            "timeout": 30
           }
         ]
       }

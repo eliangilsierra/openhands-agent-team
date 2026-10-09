@@ -8,6 +8,7 @@ Outputs (never edit them by hand):
     templates/runtime/claude/hooks/lib.mjs           only the block between the GENERATED SPECIALISTS markers
     secret-patterns.tsv copies                       config/secret-patterns.tsv for the hooks, git hooks and scripts
     templates/target-repo/.github/labels.json        the labels of config/workflow.yaml, applied by bootstrap.sh
+    templates/runtime/claude/hooks/model-pricing.json config/model-pricing.yaml for the usage ledger hook
 
 Usage:
     python scripts/generate_runtime.py          write the files
@@ -31,6 +32,8 @@ AGENTS_DIR = ROOT / "templates" / "runtime" / "claude" / "agents"
 LIB = ROOT / "templates" / "runtime" / "claude" / "hooks" / "lib.mjs"
 CATALOGUE_JSON = ROOT / "skills" / "stack-routing" / "specialists.json"
 LABELS_JSON = ROOT / "templates" / "target-repo" / ".github" / "labels.json"
+PRICING_JSON = ROOT / "templates" / "runtime" / "claude" / "hooks" / "model-pricing.json"
+BUDGETS_JSON = ROOT / "templates" / "runtime" / "claude" / "hooks" / "context-budgets.json"
 POLICY = ROOT / "config" / "secret-patterns.tsv"
 POLICY_COPIES = [
     ROOT / "templates" / "runtime" / "claude" / "hooks" / "secret-patterns.tsv",
@@ -217,6 +220,7 @@ def plan() -> dict[Path, str]:
         "base_role": base_id,
         "base_skills": base["skills"],
         "routing": specialists_cfg["routing"],
+        "complexity_models": load("workflow.yaml")["autonomy"]["specialist_routing"]["complexity_models"],
         "specialists": {sid: {"title": s["title"], "stacks": s["stacks"], "skills": s["skills"]}
                         for sid, s in specialists_cfg["specialists"].items()},
     }
@@ -230,6 +234,13 @@ def plan() -> dict[Path, str]:
     if not pattern.search(lib):
         raise SystemExit(f"{LIB.relative_to(ROOT)}: missing the GENERATED SPECIALISTS markers")
     files[LIB] = pattern.sub(lambda _: "\n".join(block), lib)
+
+    files[PRICING_JSON] = json.dumps(load("model-pricing.yaml"), indent=2) + "\n"
+    budgets = {agent_id: cfg["runtime"].get("context_budget_tokens", 0) for agent_id, cfg in agents.items()
+               if cfg.get("execution_backend") == "claude-code-subagent"}
+    budgets.update({sid: (spec.get("runtime") or {}).get("context_budget_tokens", budgets[base_id])
+                    for sid, spec in specialists_cfg["specialists"].items() if sid != base_id})
+    files[BUDGETS_JSON] = json.dumps(budgets, indent=2, sort_keys=True) + "\n"
 
     labels = load("workflow.yaml")["labels"]
     files[LABELS_JSON] = json.dumps(

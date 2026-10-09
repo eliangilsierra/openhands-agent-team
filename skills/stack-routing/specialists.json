@@ -26,6 +26,11 @@
     "fallback": "developer",
     "on_multiple_stacks": "split"
   },
+  "complexity_models": {
+    "S": "sonnet",
+    "M": "sonnet",
+    "L": "opus"
+  },
   "specialists": {
     "developer": {
       "title": "Generalist Developer",

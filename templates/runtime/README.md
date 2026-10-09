@@ -10,7 +10,7 @@ Text to install in the OpenHands runtime. Nothing here is read from Git by OpenH
 | [claude/hooks/](claude/hooks/) | `~/.claude/hooks/` | Claude Code hooks (Node.js) and their tests |
 | [claude/githooks/](claude/githooks/) | `~/.claude/githooks/`, activated with `GIT_CONFIG_*` | `pre-commit`, `commit-msg`, `pre-push`, their shared `scan-lib.sh` and the generated `secret-patterns.tsv` |
 
-Installation steps: [docs/subagents.md](../../docs/subagents.md#11-installing-the-runtime).
+Installation steps: [docs/subagents.md](../../docs/subagents.md#12-installing-the-runtime).
 
 In the Docker setup `~/.claude` is a persistent volume, so the file is created once at the root of that
 volume, owned by the container user (for example UID 10001), and survives redeployments.

@@ -218,6 +218,72 @@ const good = stop('STATUS: DONE\nARTIFACTS: PR #30\nEVIDENCE: npm test ok\nNEXT:
 check('subagent-stop: accepts a complete contract', good.code === 0 && good.out === '');
 check('subagent-stop: ignores built-in subagents', hook('subagent-stop.mjs', { agent_type: 'Explore', last_assistant_message: 'x' }, onFeature).out === '');
 
+// ---------------------------------------------------------------- usage ledger, context guard, models (Issue #19)
+const projects = path.join(home, '.claude', 'projects', 'proj');
+fs.mkdirSync(path.join(projects, 'sess-1', 'subagents'), { recursive: true });
+const mainTranscript = path.join(projects, 'sess-1.jsonl');
+const subTranscript = path.join(projects, 'sess-1', 'subagents', 'agent-dev-9.jsonl');
+const ledgerFile = path.join(home, '.claude', 'usage', 'ledger.jsonl');
+const usageOf = (input, cacheRead, write, output) => ({ input_tokens: input, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: write, output_tokens: output });
+const assistant = (id, model, usage, at, extra = {}) => JSON.stringify({
+  type: 'assistant', requestId: id, timestamp: at, ...extra,
+  message: { id: `msg-${id}`, model, usage, content: [{ type: 'tool_use', id: `tool-${id}`, name: 'Bash' }] },
+});
+const userLine = (text, at, extra = {}) => JSON.stringify({ type: 'user', timestamp: at, ...extra, message: { role: 'user', content: text } });
+fs.writeFileSync(subTranscript, [
+  userLine('Work item: o/shop#43 (task Issue) - throttle logins\nStage: in-development\nCheckpoint: x', '2026-10-09T10:00:00.000Z'),
+  assistant('r1', 'claude-sonnet-5-5', usageOf(10, 1000, 2000, 300), '2026-10-09T10:00:10.000Z'),
+  assistant('r1', 'claude-sonnet-5-5', usageOf(10, 1000, 2000, 300), '2026-10-09T10:00:11.000Z'), // same response, second block
+  assistant('r2', 'claude-sonnet-5-5', usageOf(5, 3000, 100, 200), '2026-10-09T10:05:00.000Z'),
+  '',
+].join('\n'));
+const ledgerHook = (input) => hook('usage-ledger.mjs', { session_id: 'sess-1', transcript_path: mainTranscript, ...input }, onFeature);
+const ledger = () => (fs.existsSync(ledgerFile) ? fs.readFileSync(ledgerFile, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
+fs.writeFileSync(mainTranscript, `${userLine('Build: login throttling', '2026-10-09T09:59:00.000Z')}\n`);
+
+let result = ledgerHook({ hook_event_name: 'SubagentStop', agent_id: 'dev-9', agent_type: 'developer-java-spring', last_assistant_message: 'STATUS: DONE\nCHECKPOINT: x' });
+let rows = ledger();
+const sub = rows[0] || {};
+check('usage-ledger: never blocks', result.code === 0 && result.out === '');
+check('usage-ledger: records the subagent run', rows.length === 1 && sub.kind === 'subagent' && sub.agent === 'developer-java-spring');
+check('usage-ledger: counts each API request once', sub.calls === 2 && sub.tokens?.output === 500 && sub.tokens?.cache_read === 4000);
+check('usage-ledger: reads the work item, stage and status', sub.repo === 'o/shop' && sub.item === 43 && sub.stage === 'in-development' && sub.status === 'DONE');
+check('usage-ledger: measures the duration', sub.duration_s === 300);
+check('usage-ledger: estimates an API-equivalent cost', sub.cost_usd === 0.0111 && sub.models['claude-sonnet-5-5'] === 2); // (20+3000+200+5000 + 10+2000+600+250) / 1e6
+check('usage-ledger: stores no content', !JSON.stringify(sub).includes('throttle logins'));
+ledgerHook({ hook_event_name: 'SubagentStop', agent_id: 'dev-9', agent_type: 'developer-java-spring', last_assistant_message: 'STATUS: DONE' });
+check('usage-ledger: a second stop does not count the run twice', ledger().length === 1);
+fs.appendFileSync(subTranscript, `${assistant('r3', 'claude-opus-5-5', usageOf(5, 1000, 0, 100), '2026-10-09T10:06:00.000Z')}\n`);
+ledgerHook({ hook_event_name: 'SubagentStop', agent_id: 'dev-9', agent_type: 'developer-java-spring', last_assistant_message: 'STATUS: DONE' });
+rows = ledger();
+check('usage-ledger: later work is recorded as a delta with the same work item', rows.length === 2 && rows[1].calls === 1 && rows[1].item === 43 && rows[1].models['claude-opus-5-5'] === 1);
+
+fs.appendFileSync(mainTranscript, [
+  assistant('m1', 'claude-sonnet-5-5', usageOf(3, 5000, 500, 50), '2026-10-09T10:01:00.000Z'),
+  assistant('s1', 'claude-sonnet-5-5', usageOf(3, 9000, 0, 70), '2026-10-09T10:02:00.000Z', { isSidechain: true, agentId: 'other' }),
+  '',
+].join('\n'));
+ledgerHook({ hook_event_name: 'Stop' });
+rows = ledger();
+check('usage-ledger: records the coordinator without its subagents', rows.length === 3 && rows[2].agent === 'coordinator' && rows[2].calls === 1 && rows[2].tokens.cache_read === 5000);
+ledgerHook({ hook_event_name: 'Stop' });
+check('usage-ledger: a coordinator turn is counted once', ledger().length === 3);
+
+const guard = (agentType, agentId) => hook('context-guard.mjs', { tool_name: 'Bash', session_id: 'sess-1', transcript_path: mainTranscript, agent_type: agentType, agent_id: agentId }, onFeature);
+fs.writeFileSync(path.join(projects, 'sess-1', 'subagents', 'agent-qa-1.jsonl'), `${assistant('q1', 'claude-haiku-5-5', usageOf(1, 20000, 1000, 10), '2026-10-09T10:00:00.000Z')}\n`);
+check('context-guard: silent below the budget', guard('qa-engineer', 'qa-1').out === '');
+fs.appendFileSync(path.join(projects, 'sess-1', 'subagents', 'agent-qa-1.jsonl'), `${assistant('q2', 'claude-haiku-5-5', usageOf(1, 85000, 1000, 10), '2026-10-09T10:01:00.000Z')}\n`);
+const warn = guard('qa-engineer', 'qa-1');
+check('context-guard: asks to checkpoint above the budget', /STATUS: PARTIAL/.test(JSON.parse(warn.out || '{}')?.hookSpecificOutput?.additionalContext || ''));
+check('context-guard: warns once per level', guard('qa-engineer', 'qa-1').out === '');
+check('context-guard: ignores the coordinator', guard(undefined, undefined).out === '');
+
+const agentCall = (model) => hook('guard-agent.mjs', { tool_name: 'Agent', tool_input: { subagent_type: 'architect', model, prompt: 'x' } }, onFeature).code;
+check('guard-agent: fable is denied', agentCall('fable') === 2);
+check('guard-agent: a full fable model id is denied', agentCall('claude-fable-5-1') === 2);
+check('guard-agent: opus escalation is allowed', agentCall('opus') === 0);
+check('guard-agent: no model override is allowed', agentCall(undefined) === 0);
+
 // ---------------------------------------------------------------- git hooks
 const commitMsg = (text) => {
   const file = path.join(tmp, 'MSG');

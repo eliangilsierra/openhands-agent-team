@@ -2,7 +2,7 @@
 name: developer
 description: Implement exactly one ai-ready task Issue and open its Pull Request when no stack specialist owns the touched modules, or for a cross-stack task that could not be split.
 model: sonnet
-effort: medium
+effort: high
 maxTurns: 120
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 skills:

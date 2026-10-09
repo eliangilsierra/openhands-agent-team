@@ -148,6 +148,14 @@ REQUIRED_FILES = [
     "templates/target-repo/.github/dependabot.yml",
     "templates/target-repo/.github/labels.json",
     "templates/target-repo/scripts/bootstrap.sh",
+    "config/model-pricing.yaml",
+    "templates/runtime/claude/hooks/usage.mjs",
+    "templates/runtime/claude/hooks/usage-ledger.mjs",
+    "templates/runtime/claude/hooks/context-guard.mjs",
+    "templates/runtime/claude/hooks/guard-agent.mjs",
+    "templates/runtime/claude/hooks/model-pricing.json",
+    "templates/runtime/claude/hooks/context-budgets.json",
+    "skills/orchestration/scripts/usage_report.py",
 ]
 
 REQUIRED_DIRS = ["agents", "skills", "docs", "docs/decisions", "templates",
@@ -818,7 +826,7 @@ def check_runtime(report: Report, agents_cfg: dict) -> None:
     settings = json.loads(read(runtime_dir / "settings.json"))
     commands = json.dumps(settings.get("hooks", {}))
     for hook in sorted((runtime_dir / "hooks").glob("*.mjs")):
-        if hook.name in ("lib.mjs", "test-hooks.mjs"):
+        if hook.name in ("lib.mjs", "usage.mjs", "test-hooks.mjs"):
             continue
         if hook.name not in commands:
             report.error(f"templates/runtime/claude/settings.json: hook {hook.name} is not registered")
@@ -826,6 +834,38 @@ def check_runtime(report: Report, agents_cfg: dict) -> None:
         report.error("templates/runtime/claude/settings.json: autoMemoryEnabled must be true (subagent memory)")
     if settings.get("env", {}).get("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH") != "1":
         report.error("templates/runtime/claude/settings.json: CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH must be '1'")
+    check_models_and_context(report, agents_cfg, settings)
+
+
+def check_models_and_context(report: Report, agents_cfg: dict, settings: dict) -> None:
+    """Pinned model versions are priced, Fable is never used, context limits are set (Issue #19)."""
+    where = "templates/runtime/claude/settings.json"
+    env = settings.get("env", {})
+    pricing = load_yaml(ROOT / "config" / "model-pricing.yaml") or {}
+    priced = pricing.get("models", {})
+    for alias in sorted(MODELS):
+        model_id = env.get(f"ANTHROPIC_DEFAULT_{alias.upper()}_MODEL")
+        if not model_id:
+            report.error(f"{where}: ANTHROPIC_DEFAULT_{alias.upper()}_MODEL must pin the {alias} alias")
+        elif model_id not in priced or priced[model_id].get("alias") != alias:
+            report.error(f"config/model-pricing.yaml: no price for {model_id} (alias {alias})")
+    if pricing.get("fallback") not in priced:
+        report.error("config/model-pricing.yaml: fallback must be one of the priced models")
+    for key, minimum in (("CLAUDE_CODE_AUTO_COMPACT_WINDOW", 100000), ("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", 1),
+                         ("BASH_MAX_OUTPUT_LENGTH", 1000)):
+        if not str(env.get(key, "")).isdigit() or int(env[key]) < minimum:
+            report.error(f"{where}: {key} must be set (>= {minimum}) to keep contexts small")
+    text = json.dumps(settings).lower() + read(ROOT / "config" / "model-pricing.yaml").lower()
+    for path in sorted((ROOT / "templates" / "runtime" / "claude" / "agents").glob("*.md")):
+        text += str(frontmatter(path).get("model", "")).lower()
+    if "fable" in text or "mythos" in text:
+        report.error("the team never uses Fable or Mythos models: remove them from settings, pricing and subagents")
+    for agent_id, cfg in agents_cfg.get("agents", {}).items():
+        budget = (cfg.get("runtime") or {}).get("context_budget_tokens")
+        if not isinstance(budget, int) or budget < 0 or (0 < budget < 30000):
+            report.error(f"config/agents.yaml:{agent_id}.runtime: context_budget_tokens must be 0 or at least 30000")
+    if "guard-agent.mjs" not in json.dumps(settings.get("hooks", {}).get("PreToolUse", [])):
+        report.error(f"{where}: guard-agent.mjs must guard the Agent tool (no Fable)")
 
 
 def check_specialists(report: Report, agents_cfg: dict, skills_cfg: dict) -> None:

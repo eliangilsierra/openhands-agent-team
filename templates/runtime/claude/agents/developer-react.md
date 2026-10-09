@@ -2,7 +2,7 @@
 name: developer-react
 description: Implement exactly one ai-ready task Issue whose touched modules are React (react, react-native) and open its Pull Request. Chosen by the coordinator with select_specialist.py.
 model: sonnet
-effort: medium
+effort: high
 maxTurns: 120
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 skills:

@@ -50,6 +50,21 @@ def parse_task(body: str) -> tuple[list[str], str | None]:
     return touches, stack
 
 
+def parse_complexity(body: str) -> str | None:
+    """The task's "Complexity: S|M|L" line, written by the Planner (Issue #19)."""
+    for line in body.splitlines():
+        match = re.match(r"^\s*[-*]?\s*\**Complexity:?\**:?\s*`?([SML])\b", line, re.IGNORECASE)
+        if match:
+            return match.group(1).upper()
+    return None
+
+
+def model_for(complexity: str | None, catalogue: dict) -> str:
+    """S and M run on the role's model; L runs on opus. Never fable."""
+    models = catalogue.get("complexity_models", {"S": "sonnet", "M": "sonnet", "L": "opus"})
+    return models.get(complexity or "M", models.get("M", "sonnet"))
+
+
 def literal_prefix(pattern: str) -> str:
     """The directory part of a glob before its first wildcard: 'apps/web/src/**' -> 'apps/web/src'."""
     pattern = pattern.strip().lstrip("./")
@@ -140,6 +155,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--issue", type=int, help="read Touches and Stack from this task Issue with gh")
     parser.add_argument("--repo", help="owner/repo for --issue")
     parser.add_argument("--summary", action="store_true", help="list the specialists the repository needs")
+    parser.add_argument("--complexity", choices=("S", "M", "L"), help="the task's Complexity line")
     args = parser.parse_args(argv)
 
     catalogue = detect_stack.load_catalogue()
@@ -159,10 +175,15 @@ def main(argv: list[str] | None = None) -> int:
     touches = [t.strip() for t in args.touches.split(",") if t.strip()]
     stack = args.stack
     if args.issue:
-        issue_touches, issue_stack = parse_task(issue_body(args.issue, args.repo))
+        body = issue_body(args.issue, args.repo)
+        issue_touches, issue_stack = parse_task(body)
+        args.complexity = args.complexity or parse_complexity(body)
         touches = touches or issue_touches
         stack = stack or issue_stack
-    print(json.dumps(select(profile, touches, stack, catalogue), indent=2))
+    result = select(profile, touches, stack, catalogue)
+    result["complexity"] = args.complexity or "M"
+    result["model"] = model_for(args.complexity, catalogue)
+    print(json.dumps(result, indent=2))
     return 0
 
 

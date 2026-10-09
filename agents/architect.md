@@ -122,8 +122,8 @@ nobody pastes this by hand.
 
 | Runtime | Value |
 | --- | --- |
-| Model | `opus` (escalation: none: failure goes to `needs-human`) |
-| Effort | `high` |
+| Model | `opus` (escalation: none, never Fable: failure goes to `needs-human`) |
+| Effort | `medium` (Opus 5.5) |
 | Turn limit | 60 |
 | Time budget | 30 minutes per work item |
 | Restriction level | R3 ([config/permissions.yaml](../config/permissions.yaml)) |

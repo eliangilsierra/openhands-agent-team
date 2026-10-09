@@ -2,7 +2,7 @@
 name: researcher
 description: Answer a technical or product question with sourced, classified evidence. Use when a decision depends on facts nobody has verified.
 model: sonnet
-effort: medium
+effort: high
 maxTurns: 40
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 skills:
