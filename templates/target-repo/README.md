@@ -10,6 +10,8 @@ side is in [docs/openhands-integration.md](../../docs/openhands-integration.md).
 | [CLAUDE.md](CLAUDE.md) | `CLAUDE.md` | Makes Claude Code (ACP profiles) read the same `AGENTS.md` |
 | [.github/workflows/pr-conventions.yml](.github/workflows/pr-conventions.yml) | `.github/workflows/pr-conventions.yml` | Deterministic Pull Request check: Conventional Commits, branch name, exactly one `Closes #n`, no `changes-requested` label |
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | `.github/workflows/ci.yml` | Lint, test and build for a Node.js project |
+| [.github/workflows/secret-scan.yml](.github/workflows/secret-scan.yml) | `.github/workflows/secret-scan.yml` | gitleaks over the whole history (pinned and checksum-verified) |
+| [.gitleaks.toml](.gitleaks.toml) | `.gitleaks.toml` | gitleaks default rules plus documented placeholders |
 | [ci/java-maven.yml](ci/java-maven.yml) | `.github/workflows/ci.yml` | Maven `verify` for Java or Kotlin (Spring Boot) |
 | [ci/java-gradle.yml](ci/java-gradle.yml) | `.github/workflows/ci.yml` | Gradle `build` for Java, Kotlin JVM, Spring Boot or Ktor |
 | [ci/android.yml](ci/android.yml) | `.github/workflows/ci.yml` | Unit tests, Android Lint and debug build |
@@ -67,11 +69,14 @@ Run these once per project, as a human administrator. Agents cannot create workf
    only, and protection level 1 or 2 for `main`. Commands and the difference between the levels are in
    [docs/github-integration.md](../../docs/github-integration.md#branch-protection-or-ruleset-for-main) and
    [repository settings](../../docs/github-integration.md#repository-settings).
-4. **Token access.** The `GITHUB_TOKEN` secret of the OpenHands runtime must reach this repository
+4. **Secret scanning and push protection.** Enable both
+   ([docs/github-integration.md](../../docs/github-integration.md#repository-settings)) before the first
+   agent push; GitHub then rejects pushes that contain known provider secrets.
+5. **Token access.** The `GITHUB_TOKEN` secret of the OpenHands runtime must reach this repository
    (Contents, Issues and Pull requests with read and write, Metadata read) and read the team
    repository.
-5. **Required checks.** After the first Pull Request has run `pr-conventions` and `ci`, mark both as
-   required status checks of `main`.
+6. **Required checks.** After the first Pull Request has run `pr-conventions`, `ci` and `secret-scan`,
+   mark all three as required status checks of `main`.
 
 ## Starting work
 
