@@ -77,6 +77,17 @@ permission entry.
    validator checks the first two.
 6. Run the validation below. In the PR, list the runtime files to reinstall.
 
+## Changing the secret policy
+
+1. Edit [config/secret-patterns.tsv](config/secret-patterns.tsv) only; keep to the regex subset its
+   header describes, so `grep -E`, JavaScript and Python read it the same way.
+2. Run `python scripts/generate_runtime.py` to refresh the copies in `hooks/`, `githooks/` and
+   `skills/development/scripts/`.
+3. Add cases to `tests/test_secret_scan.py` and `templates/runtime/claude/hooks/test-hooks.mjs`: one
+   value the rule must catch and one legitimate value it must let through. Build fake secrets by
+   concatenation so no scanner sees a literal.
+4. Never add an allow rule to make a real finding pass: remove the value and rotate the credential.
+
 ## Adding a helper script
 
 - Place it in `skills/<skill>/scripts/<name>.py`: Python 3.10+, standard library only, a docstring
@@ -171,6 +182,8 @@ The [validate-repository](.github/workflows/validate-repository.yml) workflow mu
 | `plugin.json` schema, name and version | `scripts/validate_repository.py` |
 | Secret patterns, secret-bearing files, placeholder markers, application source | `scripts/validate_repository.py` |
 | Generated runtime files match `config/` | `scripts/generate_runtime.py --check` (also run by the validator) |
+| Secrets in the whole history | gitleaks (pinned, checksum-verified) with [.gitleaks.toml](.gitleaks.toml) |
+| Secret policy used everywhere, no duplicated pattern lists | `scripts/validate_repository.py` with [config/secret-patterns.tsv](config/secret-patterns.tsv) |
 | Developer specialists agree with skills, hooks and docs | `scripts/validate_repository.py` |
 | Unit tests of the skill scripts, generator and validator | `python -m unittest discover -s tests` |
 | Markdown style | `markdownlint-cli2` with [.markdownlint-cli2.yaml](.markdownlint-cli2.yaml) |

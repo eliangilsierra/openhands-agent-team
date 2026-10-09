@@ -199,7 +199,19 @@ gh api -X PATCH repos/<owner>/<repo> -F allow_merge_commit=false -F allow_rebase
       [.github/CODEOWNERS](../.github/CODEOWNERS)).
 - [ ] Settings → Actions → General → Workflow permissions: "Read repository contents" by default;
       workflows request additional permissions explicitly.
-- [ ] Enable secret scanning and push protection where available; enable Dependabot alerts.
+- [ ] Enable secret scanning and push protection (free on public repositories; on private repositories
+      they need GitHub Secret Protection or Advanced Security); enable Dependabot alerts:
+
+  ```bash
+  gh api -X PATCH repos/<owner>/<repo> --input - <<'EOF'
+  {"security_and_analysis": {"secret_scanning": {"status": "enabled"},
+                             "secret_scanning_push_protection": {"status": "enabled"}}}
+  EOF
+  ```
+
+- [ ] Add [secret-scan.yml](../templates/target-repo/.github/workflows/secret-scan.yml) and
+      [.gitleaks.toml](../templates/target-repo/.gitleaks.toml) from the target repository kit and mark
+      `secret-scan` as a required status check.
 
 ### Agent identity
 

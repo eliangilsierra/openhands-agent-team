@@ -96,6 +96,12 @@ exploitation; `LOW` — hardening with limited impact; `NIT` — informational.
 
 ## Rules
 
+- Redact before publishing: reports, reviews and comments never contain secrets or private data
+  (real emails, phone numbers, private IPs, personal paths, credentials). Paste trimmed log excerpts,
+  check a body file with `secret_scan.py --scope all <file>` before posting, and treat a hook denial
+  as "redact and retry", never as something to work around.
+- Check that the change does not weaken the secret policy: no new allow rules for real values, no
+  bypass of git hooks or of `config/secret-patterns.tsv`, no secrets in fixtures, logs or examples.
 - Never claim a system or change is secure because a checklist passed. State scope and limits.
 - Never repeat a secret value. Report its location; secrets found are `BLOCKER` and must be rotated
   by a human even after removal from the branch.

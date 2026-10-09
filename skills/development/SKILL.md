@@ -65,6 +65,7 @@ next to your checkpoint (`.agent-state/items/<n>-*.json`).
 | `checkpoint.py` | Keep the checkpoint and its GitHub comment current | `python "$S/checkpoint.py" --item <n> --done "<step>" --mirror` |
 | `pr_body.py` | Write a complete Pull Request body with the evidence | `python "$S/pr_body.py" --issue <n> --summary "..." --checks ... --out .agent-state/items/<n>-pr.md` |
 | `deps_check.py` | Check licence, maintenance and advisories before adding a dependency | `python "$S/deps_check.py" --ecosystem npm --name <pkg>` |
+| `secret_scan.py` | Check a text or file for secrets and private data before publishing it | `python "$S/secret_scan.py" --scope all .agent-state/items/<n>-pr.md` |
 
 A script that fails is reported with its output like any other command; it never replaces your
 judgement, and its absence never blocks the task (fall back to the manual step and say so).
@@ -149,6 +150,12 @@ Review → Security Review runs again). Never resolve another agent's thread wit
 
 ## Rules
 
+- Redact before publishing: reports, reviews and comments never contain secrets or private data
+  (real emails, phone numbers, private IPs, personal paths, credentials). Paste trimmed log excerpts,
+  check a body file with `secret_scan.py --scope all <file>` before posting, and treat a hook denial
+  as "redact and retry", never as something to work around.
+- Never bypass git's safety nets (`--no-verify`, `commit -n`, `core.hooksPath`, `GIT_CONFIG_*`,
+  `git add --force`, new remotes, history rewrites). The hooks deny them; a denial is a policy decision.
 - Never commit to, push to or merge into `main`, on GitHub or with a local `git merge`. Never
   enable auto-merge. To resolve conflicts, update your own branch and push it.
 - One task Issue per branch and per Pull Request. If the task is too large, stop and ask the

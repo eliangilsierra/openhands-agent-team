@@ -98,6 +98,10 @@ Recommendation: the concrete change that resolves it
 
 ## Rules
 
+- Redact before publishing: reports, reviews and comments never contain secrets or private data
+  (real emails, phone numbers, private IPs, personal paths, credentials). Paste trimmed log excerpts,
+  check a body file with `secret_scan.py --scope all <file>` before posting, and treat a hook denial
+  as "redact and retry", never as something to work around.
 - No subjective style comments. Formatting and style belong to linters; comment on style only when
   it breaks a written project convention or materially harms readability or correctness.
 - Every finding has all six fields. No evidence → no finding.
