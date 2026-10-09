@@ -42,10 +42,10 @@ validator checks that they agree.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Coordinator (orchestrator) | sonnet | medium | — | — | — | R0 | 1 |
 | product-manager | haiku | medium | 30 | 10 | sonnet | R2 | 1 |
-| researcher | sonnet | medium | 40 | 20 | opus | R1 | 3 |
-| architect | opus | high | 60 | 30 | — (failure → `needs-human`) | R3 | 1 |
+| researcher | sonnet | high | 40 | 20 | opus | R1 | 3 |
+| architect | opus | medium | 60 | 30 | — (failure → `needs-human`) | R3 | 1 |
 | planner | sonnet | high | 40 | 15 | opus | R2 | 1 |
-| developer (and its 10 specialists, section 3) | sonnet | medium | 120 | 45 | opus | R4 | 3 in total (worktrees) |
+| developer (and its 10 specialists, section 3) | sonnet (opus for `Complexity: L`) | high | 120 | 45 | opus | R4 | 3 in total (worktrees) |
 | qa-engineer | haiku | medium | 50 | 20 | sonnet | R1 | 2 |
 | code-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
 | security-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
@@ -129,7 +129,50 @@ settings, not to this repository:
   reduces outdated API usage. It sends library names and queries to an external service, so it is a
   data-sharing decision; developers already have `WebFetch` for official documentation.
 
-## 4. Restriction levels and harness
+## 4. Models, usage and context
+
+**Models.** The aliases resolve to pinned versions in `settings.json` (`ANTHROPIC_DEFAULT_SONNET_MODEL`
+`claude-sonnet-5-5`, `ANTHROPIC_DEFAULT_OPUS_MODEL` `claude-opus-5-5`, `ANTHROPIC_DEFAULT_HAIKU_MODEL`
+`claude-haiku-5-5`); changing a version is one line. Defaults: Sonnet at `high` effort, Opus at `medium`,
+Haiku for the product manager and QA, the coordinator at `medium`. Escalation changes only the model
+(Claude Code sets effort per subagent definition). The team **never uses Fable**: the validator rejects it
+and the `guard-agent` hook denies it on every delegation.
+
+**Task complexity.** The Planner writes `Complexity: S|M|L` in every task. `select_specialist.py` returns
+the model: S and M run on the role's model (Sonnet), L on Opus. L means concurrency, security-sensitive
+code, data migrations, changes across several modules, or a task that already failed once.
+
+**Usage ledger.** The `usage-ledger` hook appends one line per subagent run (at `SubagentStop`) and per
+coordinator turn (at `Stop`, `PreCompact` and `SessionEnd`) to `~/.claude/usage/ledger.jsonl`: agent,
+agent id, repository, work item, stage, status, start, end, duration, models, API calls, tool calls,
+compactions, input, output, cache-read and cache-write tokens, the last context size, and an
+API-equivalent cost from [config/model-pricing.yaml](../config/model-pricing.yaml). It stores numbers and
+identifiers only, counts each API request once, and records incrementally so nothing is counted twice.
+`~/.claude` is a persistent volume, so the ledger survives conversations.
+
+```bash
+python "$HOME/.claude/skills/orchestration/scripts/usage_report.py" --by agent          # or model, item, repo, day, stage
+python "$HOME/.claude/skills/orchestration/scripts/usage_report.py" --item 43 --format github
+```
+
+GitHub gets only the one-line `--format github` summary: in the item's Checkpoint comment and on the
+feature Issue when it finishes. The detail stays local.
+
+**Context.** A long session re-sends its whole context on every turn; with 1M-token windows,
+auto-compaction used to start too late (a measured session averaged ~425K tokens per call and never
+compacted). Now:
+
+| Control | Value | Effect |
+| --- | --- | --- |
+| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` / `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | 200000 / 70 | Auto-compaction near 140K tokens; the `PreCompact` and `SessionStart` hooks keep the board across it |
+| `BASH_MAX_OUTPUT_LENGTH` | 15000 | Long command output stays out of the context |
+| `context-guard` (`PostToolUse`) | `runtime.context_budget_tokens` per role (60K-120K) | Above the budget, the subagent checkpoints and returns `PARTIAL`; the coordinator continues with a fresh subagent on the same model |
+| Coordinator discipline | skill orchestration | Board and result contracts only; `gh --json --jq` with the fields needed; never full diffs |
+
+Agents cannot run `/compact` themselves (slash commands are user-only) and no hook can start a
+compaction, so these thresholds and the context guard are the automatic mechanism.
+
+## 5. Restriction levels and harness
 
 | Level | Agents | May write | Blocked by hooks |
 | --- | --- | --- | --- |
@@ -154,9 +197,9 @@ as R1.
 | `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` | 4 | Global parallelism cap |
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | 0 | Named subagents stay subagents |
 | `TEAM_REPO` | `<owner>/openhands-agent-team` | Where agents read rules and templates |
-| Hooks | see section 9 | Deterministic limits and state |
+| Hooks | see section 10 | Deterministic limits and state |
 
-## 5. Parallelism
+## 6. Parallelism
 
 | Allowed in parallel | Condition |
 | --- | --- |
@@ -168,7 +211,7 @@ as R1.
 Never in parallel: product definition, architecture and planning of one feature; two agents on one
 branch; a task that depends on an unmerged Pull Request; QA or reviews of an outdated commit.
 
-## 6. Time budgets and model escalation
+## 7. Time budgets and model escalation
 
 Claude Code has no built-in "switch model after N minutes", so the coordinator applies this policy:
 
@@ -182,7 +225,7 @@ Claude Code has no built-in "switch model after N minutes", so the coordinator a
 5. API or usage-limit errors: the `StopFailure` hook writes `.agent-state/paused.json`; the next start
    resumes from the checkpoints.
 
-## 7. Memory and context
+## 8. Memory and context
 
 | Layer | Where | What | Who |
 | --- | --- | --- | --- |
@@ -201,7 +244,7 @@ Context rules:
 - The coordinator keeps only the board and reads full artifacts only to decide a transition.
 - `.agent-state/` is excluded from git by the `SessionStart` hook (`.git/info/exclude`).
 
-## 8. Recovery
+## 9. Recovery
 
 | What stopped | How work continues |
 | --- | --- |
@@ -211,14 +254,16 @@ Context rules:
 | Usage limit or API error | `paused.json` tells the next run to resume from checkpoints |
 | The conversation | A new conversation with `reanuda #<issue>` rebuilds from the GitHub "Team board" and "Checkpoint" comments |
 
-## 9. Validations and preventions
+## 10. Validations and preventions
 
 | Layer | File | Effect |
 | --- | --- | --- |
 | `PreToolUse` Bash | `hooks/guard-bash.mjs` | Global denials, per-level git limits, git safety-net bypasses, secrets in commands, secrets and private data in published text |
 | `PreToolUse` Edit/Write | `hooks/guard-files.mjs` | Per-level write paths, no secret files, no workflow files, no secrets in content |
 | `PreToolUse` MCP | `hooks/guard-publish.mjs` | Secrets in any MCP call; private data in GitHub writes |
-| `PostToolUse` | `hooks/heartbeat.mjs` | Stall detection |
+| `PostToolUse` | `hooks/heartbeat.mjs`, `hooks/context-guard.mjs` | Stall detection; context budget per role |
+| `PreToolUse` Agent | `hooks/guard-agent.mjs` | No Fable or Mythos model on any delegation |
+| `SubagentStop`, `Stop`, `PreCompact`, `SessionEnd` | `hooks/usage-ledger.mjs` | Time and usage ledger |
 | `SubagentStop` | `hooks/subagent-stop.mjs` | Result contract, event log |
 | `SessionStart` | `hooks/session-start.mjs` | Excludes `.agent-state/`, re-injects the board |
 | `PreCompact` | `hooks/pre-compact.mjs` | Board snapshot |
@@ -235,9 +280,10 @@ All of them are tested in CI: `node templates/runtime/claude/hooks/test-hooks.mj
 the policy file is missing, they deny and ask to reinstall `~/.claude/hooks`. Set `TEAM_GITLEAKS=1` in
 the runtime to add a local gitleaks scan to `pre-commit` and `pre-push` when the binary is installed.
 
-## 10. Token use
+## 11. Token use
 
-- haiku for product management and QA, sonnet by default, opus only for the architect and escalations.
+- haiku for product management and QA, sonnet by default, opus for the architect, `Complexity: L` tasks
+  and escalations; never fable. Measure with the usage ledger before changing a default.
 - Effort per role; only the role's skills preloaded; fewer tools mean fewer tool schemas in context.
 - Short briefs and result contracts; reviewers read `gh pr diff` and the touched files.
 - One clone and one install per conversation; worktrees share the git objects.
@@ -245,7 +291,7 @@ the runtime to add a local gitleaks scan to `pre-commit` and `pre-push` when the
 - Stack knowledge lives in skills preloaded only by the specialist that needs it, with deep
   `references/` loaded on demand; scripts summarise long command output instead of pasting it.
 
-## 11. Installing the runtime
+## 12. Installing the runtime
 
 Run once per OpenHands deployment, as an administrator. `<VOL>` is the host path of the volume mounted at
 `/home/openhands/.claude` (find it with `findmnt -T ~/.claude` inside the container), and `10001` the
@@ -285,7 +331,7 @@ container user.
 5. Check: start a conversation with `team` and write `estado`. The coordinator must answer as
    coordinator and list the subagents.
 
-## 12. Using the team
+## 13. Using the team
 
 | You write | What happens |
 | --- | --- |
@@ -298,7 +344,7 @@ container user.
 The coordinator ends every run with a list of what waits on you (ADR Pull Requests, Pull Requests to
 merge, `needs-human` questions) and what is still running.
 
-## 13. Pilot checklist
+## 14. Pilot checklist
 
 - One message reaches the ADR, and after accepting it the pull requests, without other questions.
 - At most three developers at once, in different worktrees and branches; reviews run in parallel after QA.
@@ -312,7 +358,7 @@ merge, `needs-human` questions) and what is still running.
   to see escalation.
 - Asking an agent to `git push origin main` or `gh pr merge` is denied by a hook.
 
-## 14. Known limits
+## 15. Known limits
 
 - Whether the ACP adapter loads `~/.claude/agents`, hooks and settings, and supports worktree isolation
   and background subagents, is confirmed in the pilot; skills from `~/.claude/skills` are already loaded.

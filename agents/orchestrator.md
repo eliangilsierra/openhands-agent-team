@@ -120,6 +120,6 @@ writes the briefs of every other role.
 | Runtime | Value |
 | --- | --- |
 | Model | `sonnet` (the `acp_model` of the `team` profile) |
-| Effort | `medium` |
+| Effort | `medium` (`CLAUDE_CODE_EFFORT_LEVEL`; auto-compaction near 140K tokens) |
 | Restriction level | R0 ([config/permissions.yaml](../config/permissions.yaml)) |
 | Instances | 1 per conversation |

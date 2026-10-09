@@ -155,7 +155,7 @@ nobody pastes this by hand.
 | Runtime | Value |
 | --- | --- |
 | Model | `sonnet` (escalation: `opus`, same specialist) |
-| Effort | `medium` |
+| Effort | `high`; tasks marked `Complexity: L` run on `opus` |
 | Turn limit | 120 |
 | Time budget | 45 minutes per work item |
 | Restriction level | R4 ([config/permissions.yaml](../config/permissions.yaml)) |

@@ -103,7 +103,7 @@ Since ADR-0002 the team needs **one** Agent Profile:
 Claude Code authenticates with the subscription login stored in the persistent `~/.claude` volume (or
 `ANTHROPIC_API_KEY` if you prefer an API key; do not configure both). The roles are Claude Code
 subagents installed in that volume; installation steps are in
-[docs/subagents.md](subagents.md#11-installing-the-runtime). Per-role profiles from the previous design
+[docs/subagents.md](subagents.md#12-installing-the-runtime). Per-role profiles from the previous design
 (archive branch `archive/multi-profile-team`) can be deleted.
 
 ### 3.6 Skills
@@ -259,7 +259,7 @@ repeats the essential rules.
    `estado`.
 3. The coordinator clones the target repository into the workspace, delegates each stage to a subagent
    and stops only for ADR acceptance and merges, with a list of what waits on you
-   ([docs/subagents.md](subagents.md#12-using-the-team)).
+   ([docs/subagents.md](subagents.md#13-using-the-team)).
 
 ## 7. Keeping runtime and specification aligned
 

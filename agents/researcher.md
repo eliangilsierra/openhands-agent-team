@@ -111,7 +111,7 @@ nobody pastes this by hand.
 | Runtime | Value |
 | --- | --- |
 | Model | `sonnet` (escalation: `opus`) |
-| Effort | `medium` |
+| Effort | `high` |
 | Turn limit | 40 |
 | Time budget | 20 minutes per work item |
 | Restriction level | R1 ([config/permissions.yaml](../config/permissions.yaml)) |
