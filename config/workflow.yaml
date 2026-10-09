@@ -260,12 +260,25 @@ autonomy:
     explicit_stack_wins: true
     cross_stack_task: The Planner splits it by stack; if it cannot be split, the generalist developer runs it with every stack skill involved.
     escalation_keeps_specialist: true # model escalation re-delegates to the same specialist with the next model
+    complexity_models:                # the Planner writes "Complexity: S|M|L"; select_specialist.py returns the model
+      S: sonnet
+      M: sonnet
+      L: opus                         # concurrency, security-sensitive, data migration, several modules, or a failed attempt
+  usage_accounting:                   # Issue #19
+    ledger: ~/.claude/usage/ledger.jsonl   # one line per subagent run and per coordinator turn; numbers and ids only
+    pricing: config/model-pricing.yaml     # API-equivalent estimate; the subscription is not billed per token
+    report: skills/orchestration/scripts/usage_report.py
+    github: one short "Usage" line on the Checkpoint comment and on the feature Issue when it finishes
+  context:
+    auto_compact_window_tokens: 200000
+    auto_compact_percent: 70          # auto-compaction near 140K tokens
+    bash_max_output_chars: 15000
   never_parallel:
     - product-definition, architecture and planning of the same feature
     - two agents writing the same branch
     - a task that depends on an unmerged pull request
   escalation:
-    ladder: [haiku, sonnet, opus]
+    ladder: [haiku, sonnet, opus]       # never fable (Issue #19)
     triggers: [partial result (max turns reached), no heartbeat for stall_minutes, time budget exceeded without checkpoint progress, the same validation failure twice]
     stall_minutes: 10
     max_escalations_per_item: 1

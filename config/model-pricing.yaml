@@ -1,0 +1,39 @@
+# config/model-pricing.yaml - API list prices used for the usage ledger's cost estimate (Issue #19).
+#
+# The team runs on a Claude subscription, which is not billed per token: the ledger's "cost_usd" is an
+# API-equivalent estimate to compare agents, models and work items, not an invoice.
+# Source: Anthropic first-party API pricing, as cached in the claude-api skill on 2026-10-06.
+# Generated copy for the hooks: templates/runtime/claude/hooks/model-pricing.json (scripts/generate_runtime.py).
+#
+# Prices are USD per million tokens. Cache writes cost cache_write_5m x input (5-minute TTL) or
+# cache_write_1h x input (1-hour TTL); cache reads have their own price. long_context applies when one
+# request's input (including cache) exceeds threshold_tokens. Unknown models are priced as "fallback"
+# and flagged in the ledger.
+
+schema_version: 1
+cache_write_5m: 1.25
+cache_write_1h: 2.0
+
+models:
+  claude-opus-5-5:
+    alias: opus
+    input: 4.00
+    output: 20.00
+    cache_read: 0.20
+  claude-sonnet-5-5:
+    alias: sonnet
+    input: 2.00
+    output: 10.00
+    cache_read: 0.20
+  claude-haiku-5-5:
+    alias: haiku
+    input: 0.10
+    output: 0.50
+    cache_read: 0.01
+    long_context:
+      threshold_tokens: 100000
+      input: 0.50
+      output: 2.50
+      cache_read: 0.05
+
+fallback: claude-opus-5-5

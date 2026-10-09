@@ -2,7 +2,7 @@
 name: architect
 description: Design the architecture of a feature and write ADRs for hard-to-reverse decisions. Use when the change adds a component, dependency, public API, data model, trust boundary or infrastructure.
 model: opus
-effort: high
+effort: medium
 maxTurns: 60
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 skills:

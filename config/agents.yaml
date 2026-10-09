@@ -14,7 +14,13 @@
 #   effort              low | medium | high | xhigh | max
 #   max_turns           maxTurns of the subagent (0 = not limited: the coordinator)
 #   time_budget_minutes wall-clock budget per work item before the coordinator escalates
-#   escalation          models to retry with, in order, when the budget or turns run out
+#   escalation          models to retry with, in order, when the budget or turns run out. Only the model
+#                       changes: Claude Code sets effort per subagent definition, not per invocation, so an
+#                       escalated run keeps the role's effort. Fable is never used (Issue #19).
+#   context_budget_tokens  context size at which the context-guard hook asks the agent to checkpoint and
+#                       return PARTIAL so the coordinator continues with a fresh subagent; 0 = auto-compaction only
+# Model versions behind the aliases are pinned in templates/runtime/claude/settings.json
+# (ANTHROPIC_DEFAULT_{SONNET,OPUS,HAIKU}_MODEL): Sonnet 5.5, Opus 5.5, Haiku 5.5.
 #   restriction_level   R0..R4, see config/permissions.yaml
 #   max_parallel        how many instances of this subagent may run at the same time
 #   isolation           worktree = own git worktree per instance; none otherwise
@@ -72,6 +78,7 @@ agents:
       max_parallel: 1
       isolation: none
       memory: user
+      context_budget_tokens: 60000
     subagent:
       description: "Turn an idea, feature request or bug report into testable requirements in a GitHub feature Issue. Use first for any new request."
       tools: [Read, Grep, Glob, Bash, Write, Edit]
@@ -107,7 +114,7 @@ agents:
     execution_backend: claude-code-subagent
     runtime:
       model: sonnet
-      effort: medium
+      effort: high
       max_turns: 40
       time_budget_minutes: 20
       escalation: [opus]
@@ -115,6 +122,7 @@ agents:
       max_parallel: 3
       isolation: none
       memory: user
+      context_budget_tokens: 90000
     subagent:
       description: "Answer a technical or product question with sourced, classified evidence. Use when a decision depends on facts nobody has verified."
       tools: [Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch]
@@ -149,7 +157,7 @@ agents:
     execution_backend: claude-code-subagent
     runtime:
       model: opus
-      effort: high
+      effort: medium
       max_turns: 60
       time_budget_minutes: 30
       escalation: []
@@ -157,6 +165,7 @@ agents:
       max_parallel: 1
       isolation: none
       memory: user
+      context_budget_tokens: 120000
     subagent:
       description: "Design the architecture of a feature and write ADRs for hard-to-reverse decisions. Use when the change adds a component, dependency, public API, data model, trust boundary or infrastructure."
       tools: [Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch]
@@ -203,6 +212,7 @@ agents:
       max_parallel: 1
       isolation: none
       memory: user
+      context_budget_tokens: 90000
     subagent:
       description: "Break requirements and the accepted design into small, ordered, traceable task Issues. Use after requirements (and accepted ADRs, when needed)."
       tools: [Read, Grep, Glob, Bash, Write, Edit]
@@ -240,7 +250,7 @@ agents:
     execution_backend: claude-code-subagent
     runtime:
       model: sonnet
-      effort: medium
+      effort: high
       max_turns: 120
       time_budget_minutes: 45
       escalation: [opus]
@@ -248,6 +258,7 @@ agents:
       max_parallel: 3   # across the generalist and every specialist together
       isolation: worktree
       memory: user
+      context_budget_tokens: 120000
     # The Developer role runs as the generalist "developer" or as one of its stack specialists,
     # chosen per task by the coordinator (ADR-0003). Specialists inherit everything in this entry.
     specialists: config/specialists.yaml
@@ -298,6 +309,7 @@ agents:
       max_parallel: 2
       isolation: none
       memory: user
+      context_budget_tokens: 80000
     subagent:
       description: "Validate a Pull Request against its acceptance criteria and look for regressions. Use first on every new or updated Pull Request."
       tools: [Read, Grep, Glob, Bash, Write, Edit]
@@ -340,6 +352,7 @@ agents:
       max_parallel: 2
       isolation: none
       memory: user
+      context_budget_tokens: 90000
     subagent:
       description: "Review a Pull Request semantically after QA passed. Runs in parallel with the security reviewer."
       tools: [Read, Grep, Glob, Bash, Write, Edit]
@@ -382,6 +395,7 @@ agents:
       max_parallel: 2
       isolation: none
       memory: user
+      context_budget_tokens: 90000
     subagent:
       description: "Review a Pull Request for exploitable security weaknesses after QA passed. Runs in parallel with the code reviewer; never skipped."
       tools: [Read, Grep, Glob, Bash, Write, Edit, WebFetch]
@@ -424,6 +438,7 @@ agents:
       max_parallel: 1
       isolation: none
       memory: user
+      context_budget_tokens: 0
     mission: Coordinate the other agents and maintain workflow state in GitHub.
     responsibilities:
       - Understand the request and determine which agents are required

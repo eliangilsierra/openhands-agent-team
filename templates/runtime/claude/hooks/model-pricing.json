@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "cache_write_5m": 1.25,
+  "cache_write_1h": 2.0,
+  "models": {
+    "claude-opus-5-5": {
+      "alias": "opus",
+      "input": 4.0,
+      "output": 20.0,
+      "cache_read": 0.2
+    },
+    "claude-sonnet-5-5": {
+      "alias": "sonnet",
+      "input": 2.0,
+      "output": 10.0,
+      "cache_read": 0.2
+    },
+    "claude-haiku-5-5": {
+      "alias": "haiku",
+      "input": 0.1,
+      "output": 0.5,
+      "cache_read": 0.01,
+      "long_context": {
+        "threshold_tokens": 100000,
+        "input": 0.5,
+        "output": 2.5,
+        "cache_read": 0.05
+      }
+    }
+  },
+  "fallback": "claude-opus-5-5"
+}

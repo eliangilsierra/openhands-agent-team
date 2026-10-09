@@ -1,0 +1,20 @@
+{
+  "architect": 120000,
+  "code-reviewer": 90000,
+  "developer": 120000,
+  "developer-angular": 120000,
+  "developer-dotnet": 120000,
+  "developer-go": 120000,
+  "developer-java-spring": 120000,
+  "developer-kotlin-android": 120000,
+  "developer-nextjs": 120000,
+  "developer-python": 120000,
+  "developer-react": 120000,
+  "developer-typescript": 120000,
+  "developer-vue": 120000,
+  "planner": 90000,
+  "product-manager": 60000,
+  "qa-engineer": 80000,
+  "researcher": 90000,
+  "security-reviewer": 90000
+}
