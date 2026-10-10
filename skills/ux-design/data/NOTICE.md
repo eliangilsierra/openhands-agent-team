@@ -1,10 +1,11 @@
 # Third-party data notice
 
-The CSV files in this directory, except `stacks/jetpack-compose.csv`, are copied unchanged from the
+The CSV files in this directory, except `stacks/jetpack-compose.csv`, are copied from the
 UI UX Pro Max skill, as published in `davila7/claude-code-templates` at commit
 `1deb97c72161528f6b7d84bc5117ae4be2e42735`
 (`cli-tool/components/skills/creative-design/ui-ux-pro-max/data`). That skill originates in
-`nextlevelbuilder/ui-ux-pro-max-skill`. Both projects are distributed under the MIT License.
+`nextlevelbuilder/ui-ux-pro-max-skill`. Both projects are distributed under the MIT License. The content is
+unchanged; only line endings are normalised to LF by `.gitattributes`.
 
 Copied: `ux-guidelines.csv`, `web-interface.csv`, `charts.csv`, `colors.csv`, `typography.csv` and
 `stacks/` `react`, `nextjs`, `vue`, `nuxtjs`, `react-native`, `html-tailwind`, `shadcn`. Not copied: the
