@@ -7,7 +7,7 @@ const input = await readInput();
 const target = input?.tool_input?.file_path ?? input?.tool_input?.notebook_path ?? '';
 let reasons = [];
 try {
-  if (target) reasons = checkFile(target, levelOf(input.agent_type), projectDir(input), process.env.HOME || os.homedir());
+  if (target) reasons = checkFile(target, levelOf(input.agent_type), projectDir(input), process.env.HOME || os.homedir(), input.agent_type);
   reasons.push(...checkContent(input?.tool_input));
 } catch (error) {
   reasons = [`the secret policy could not be loaded (${error.message}); reinstall ~/.claude/hooks`];
