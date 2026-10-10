@@ -1,8 +1,9 @@
 // SubagentStop, Stop, PreCompact, SessionEnd: append the time and usage of each run to the usage ledger
-// (~/.claude/usage/ledger.jsonl, Issue #19). Subagents are recorded when they stop; the coordinator (the
-// main session) incrementally on every turn, before compaction and when the session ends. Accounting
-// never blocks the agent: errors go to .agent-state/events.log and the hook exits 0.
-import { readInput, appendEvent } from './lib.mjs';
+// (~/.claude/usage/ledger.jsonl, Issue #19) and to a copy in the workspace (.agent-state/usage.jsonl, Issue #21).
+// Subagents are recorded when they stop; the coordinator (the main session) incrementally on every turn,
+// before compaction and when the session ends. Accounting never blocks the agent: errors go to
+// .agent-state/events.log and the hook exits 0.
+import { readInput, appendEvent, stateDir } from './lib.mjs';
 import {
   readUsage, subagentTranscript, workItemOf, repoOf, readOffset, writeOffset, appendLedger, loadJson,
 } from './usage.mjs';
@@ -51,7 +52,7 @@ try {
         last_context: usage.last_context,
         cost_usd: usage.cost_usd,
         unpriced_models: usage.unpriced_models,
-      });
+      }, stateDir(input));
     }
     writeOffset(key, {
       file,

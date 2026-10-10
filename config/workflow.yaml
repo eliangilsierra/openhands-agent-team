@@ -266,6 +266,7 @@ autonomy:
       L: opus                         # concurrency, security-sensitive, data migration, several modules, or a failed attempt
   usage_accounting:                   # Issue #19
     ledger: ~/.claude/usage/ledger.jsonl   # one line per subagent run and per coordinator turn; numbers and ids only
+    workspace_copy: .agent-state/usage.jsonl   # the same lines for this workspace; excluded from git, lost with the workspace
     pricing: config/model-pricing.yaml     # API-equivalent estimate; the subscription is not billed per token
     report: skills/orchestration/scripts/usage_report.py
     github: one short "Usage" line on the Checkpoint comment and on the feature Issue when it finishes

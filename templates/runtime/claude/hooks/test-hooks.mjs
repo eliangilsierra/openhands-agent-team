@@ -251,6 +251,9 @@ check('usage-ledger: reads the work item, stage and status', sub.repo === 'o/sho
 check('usage-ledger: measures the duration', sub.duration_s === 300);
 check('usage-ledger: estimates an API-equivalent cost', sub.cost_usd === 0.0111 && sub.models['claude-sonnet-5-5'] === 2); // (20+3000+200+5000 + 10+2000+600+250) / 1e6
 check('usage-ledger: stores no content', !JSON.stringify(sub).includes('throttle logins'));
+const workspaceCopy = path.join(onFeature, '.agent-state', 'usage.jsonl');
+check('usage-ledger: copies the record into the workspace .agent-state', fs.existsSync(workspaceCopy)
+  && fs.readFileSync(workspaceCopy, 'utf8') === fs.readFileSync(ledgerFile, 'utf8'));
 ledgerHook({ hook_event_name: 'SubagentStop', agent_id: 'dev-9', agent_type: 'developer-java-spring', last_assistant_message: 'STATUS: DONE' });
 check('usage-ledger: a second stop does not count the run twice', ledger().length === 1);
 fs.appendFileSync(subTranscript, `${assistant('r3', 'claude-opus-5-5', usageOf(5, 1000, 0, 100), '2026-10-09T10:06:00.000Z')}\n`);

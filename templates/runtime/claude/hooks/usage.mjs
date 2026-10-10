@@ -169,7 +169,19 @@ export function writeOffset(key, value) {
   fs.writeFileSync(offsetFile(key), JSON.stringify(value));
 }
 
-export function appendLedger(record) {
+// Appends the record to the global ledger (~/.claude/usage/ledger.jsonl: persistent, every workspace) and,
+// when stateDir is given, to a copy in the workspace (.agent-state/usage.jsonl: easy to find next to the
+// board, excluded from git, lost with the workspace). The copy never prevents the global write.
+export function appendLedger(record, stateDir = null) {
+  const line = `${JSON.stringify(record)}\n`;
   fs.mkdirSync(usageDir(), { recursive: true });
-  fs.appendFileSync(path.join(usageDir(), 'ledger.jsonl'), `${JSON.stringify(record)}\n`);
+  fs.appendFileSync(path.join(usageDir(), 'ledger.jsonl'), line);
+  if (stateDir) {
+    try {
+      fs.mkdirSync(stateDir, { recursive: true });
+      fs.appendFileSync(path.join(stateDir, 'usage.jsonl'), line);
+    } catch {
+      // The global ledger already holds the record.
+    }
+  }
 }
