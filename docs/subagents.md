@@ -148,11 +148,14 @@ agent id, repository, work item, stage, status, start, end, duration, models, AP
 compactions, input, output, cache-read and cache-write tokens, the last context size, and an
 API-equivalent cost from [config/model-pricing.yaml](../config/model-pricing.yaml). It stores numbers and
 identifiers only, counts each API request once, and records incrementally so nothing is counted twice.
-`~/.claude` is a persistent volume, so the ledger survives conversations.
+`~/.claude` is a persistent volume, so the ledger survives conversations. Every line is also copied to
+`.agent-state/usage.jsonl` in the conversation's workspace, next to the board and the checkpoints: easy
+to find, excluded from git, and lost with the workspace; the global file is the complete history.
 
 ```bash
 python "$HOME/.claude/skills/orchestration/scripts/usage_report.py" --by agent          # or model, item, repo, day, stage
 python "$HOME/.claude/skills/orchestration/scripts/usage_report.py" --item 43 --format github
+python "$HOME/.claude/skills/orchestration/scripts/usage_report.py" --ledger .agent-state/usage.jsonl   # this workspace only
 ```
 
 GitHub gets only the one-line `--format github` summary: in the item's Checkpoint comment and on the

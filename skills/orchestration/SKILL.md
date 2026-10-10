@@ -147,7 +147,8 @@ Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 - When an item finishes, add the one-line usage summary to its Checkpoint comment
   (`usage_report.py --item <n> --format github`), and when a feature finishes, post the same line for the
   feature on its Issue. The detailed ledger stays in `~/.claude/usage/`; never post it.
-- When the person asks who spent what, answer from `usage_report.py --by agent|model|item|repo|day`.
+- When the person asks who spent what, answer from `usage_report.py --by agent|model|item|repo|day`
+  (the global ledger), or with `--ledger .agent-state/usage.jsonl` for this workspace only.
 
 ### 8. Recovery
 
