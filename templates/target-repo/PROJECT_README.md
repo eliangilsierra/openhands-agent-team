@@ -31,6 +31,21 @@ protection, security features, the `develop` branch) is applied by one script.
 This section is removed by `bootstrap.sh`.
 <!-- template:end -->
 
+## Getting started
+
+Prerequisites, installation and the first run. The Technical Writer keeps this section current from
+the project facts in [AGENTS.md](AGENTS.md) and the guide in [docs/tutorials](docs/tutorials/README.md).
+
+## Usage
+
+What a user or client does with the project: the main commands, endpoints or screens, with links to
+[docs/how-to](docs/how-to/README.md) and [docs/reference](docs/reference/README.md).
+
+## Documentation
+
+Start at [docs/README.md](docs/README.md): tutorials, how-to guides, reference, explanation,
+architecture, decisions, UX design and research.
+
 ## Branches
 
 | Branch | Purpose | How it changes |
@@ -41,7 +56,7 @@ This section is removed by `bootstrap.sh`.
 Both branches are protected: no direct pushes, no force pushes, no deletion, and the checks
 `pr-conventions`, `ci` and `secret-scan` must pass.
 
-## Working on the project
+## Development
 
 - Read [AGENTS.md](AGENTS.md): project facts and the team contract.
 - One Issue, one branch, one Pull Request into `develop`, titled with Conventional Commits.

@@ -56,6 +56,7 @@ rules most often broken:
 | code-reviewer | code-review |
 | security-reviewer | security-review |
 | ux-designer | ux-design (web and Android/Kotlin) |
+| technical-writer | technical-writing (README and docs/) |
 | orchestrator | orchestration, stack-routing |
 
 The coordinator gives your role and work item in the brief. Use only the skills of your row.

@@ -49,7 +49,7 @@ Run these once per project, as a human administrator. Agents cannot create workf
    ```bash
    R=<owner>/<repo>
    gh label create ai-ready --color 0e8a16 --repo $R --force
-   for a in product research architect planner developer qa reviewer security ux; do
+   for a in product research architect planner developer qa reviewer security ux docs; do
      gh label create "agent:$a" --color 1d76db --repo $R --force
    done
    gh label create blocked --color b60205 --repo $R --force
@@ -62,7 +62,7 @@ Run these once per project, as a human administrator. Agents cannot create workf
    ```powershell
    $r = "<owner>/<repo>"
    gh label create ai-ready --color 0e8a16 --repo $r --force
-   foreach ($a in "product","research","architect","planner","developer","qa","reviewer","security","ux") {
+   foreach ($a in "product","research","architect","planner","developer","qa","reviewer","security","ux","docs") {
        gh label create "agent:$a" --color 1d76db --repo $r --force
    }
    gh label create blocked --color b60205 --repo $r --force
