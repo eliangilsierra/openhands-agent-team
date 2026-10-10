@@ -76,6 +76,7 @@ export const LEVELS = {
   'code-reviewer': 'R1',
   'security-reviewer': 'R1',
   'ux-designer': 'R2',
+  'technical-writer': 'R3',
   // Developer stack specialists (ADR-0003) inherit the Developer's level. Any other "developer-*"
   // name is unknown and therefore read-only.
   // BEGIN GENERATED SPECIALISTS (scripts/generate_runtime.py from config/specialists.yaml)
@@ -307,7 +308,20 @@ export function checkBash(command, level, cwd) {
 const SECRET_FILE = /(^|\/)(\.env(\.(?!example$|sample$|template$)[^/]+)?|id_rsa[^/]*|id_ed25519[^/]*|[^/]+\.(pem|key|p12|pfx)|\.credentials\.json)$/i;
 
 // Returns the list of reasons why writing filePath is not allowed for this level.
-export function checkFile(filePath, level, project, home) {
+// Write paths of the R3 (docs writer) roles, relative to the project (ADR-0005). Unknown R3 agents get
+// the architect's paths.
+const R3_PATHS = {
+  architect: {
+    test: (rel) => /^docs\/(architecture|decisions|research)\//.test(rel),
+    text: 'docs/architecture/, docs/decisions/ and docs/research/',
+  },
+  'technical-writer': {
+    test: (rel) => rel === 'CHANGELOG.md' || rel.startsWith('docs/') || rel === 'README.md' || rel.endsWith('/README.md'),
+    text: 'README.md files, CHANGELOG.md and docs/',
+  },
+};
+
+export function checkFile(filePath, level, project, home, agentType = '') {
   const reasons = [];
   const abs = path.resolve(project, filePath).replace(/\\/g, '/');
   const memoryDir = path.resolve(home || '/nonexistent', '.claude', 'agent-memory').replace(/\\/g, '/');
@@ -321,8 +335,10 @@ export function checkFile(filePath, level, project, home) {
 
   if (['R0', 'R1', 'R2'].includes(level)) {
     reasons.push(`level ${level} only writes its memory and .agent-state/`);
-  } else if (level === 'R3' && !/\/docs\/(architecture|decisions|research)\//.test(abs)) {
-    reasons.push('level R3 only writes docs/architecture/, docs/decisions/ and docs/research/');
+  } else if (level === 'R3') {
+    const rules = R3_PATHS[agentType] || R3_PATHS.architect;
+    const rel = path.relative(path.resolve(project), abs).replace(/\\/g, '/');
+    if (rel.startsWith('..') || !rules.test(rel)) reasons.push(`${agentType || 'this R3 agent'} only writes ${rules.text}`);
   }
   return reasons;
 }

@@ -72,6 +72,7 @@ Details: [docs/architecture.md](docs/architecture.md) and
 | [Code Reviewer](agents/code-reviewer.md) | Semantic PR review in twelve dimensions | Subagent · sonnet | code-review |
 | [Security Reviewer](agents/security-reviewer.md) | Find security weaknesses before merge | Subagent · sonnet | security-review |
 | [UX Designer](agents/ux-designer.md) | Specify and review interfaces for web and Android (Kotlin) | Subagent · sonnet | ux-design |
+| [Technical Writer](agents/technical-writer.md) | Keep README and docs/ current and professionally structured | Subagent · sonnet | technical-writing |
 | [Orchestrator](agents/orchestrator.md) | Coordinate agents and workflow state | Coordinator (sonnet) | orchestration, stack-routing |
 
 All agents inherit the global contract in [AGENTS.md](AGENTS.md). Canonical definitions:

@@ -68,6 +68,7 @@ Rules:
 | [Code Reviewer](agents/code-reviewer.md) | code-review | `agent:reviewer` | [code-review](skills/code-review/SKILL.md) |
 | [Security Reviewer](agents/security-reviewer.md) | security-review | `agent:security` | [security-review](skills/security-review/SKILL.md) |
 | [UX Designer](agents/ux-designer.md) | ux-design, ux-review (conditional) | `agent:ux` | [ux-design](skills/ux-design/SKILL.md) |
+| [Technical Writer](agents/technical-writer.md) | documentation (conditional) | `agent:docs` | [technical-writing](skills/technical-writing/SKILL.md) |
 | [Orchestrator](agents/orchestrator.md) | coordination, blocked | — | [orchestration](skills/orchestration/SKILL.md) |
 
 The canonical definitions are in [`config/agents.yaml`](config/agents.yaml),

@@ -106,6 +106,13 @@ states:
     terminal: true
     description: The change is integrated.
 
+  documentation:
+    owner: technical-writer
+    github: "Feature Issue labeled agent:docs; one docs/ Pull Request open"
+    conditional: true
+    skip_when: The feature changed no user-visible behaviour, public interface, configuration, architecture or operation.
+    description: The README and docs/ are updated for the finished feature in one docs/ Pull Request.
+
   blocked:
     owner: orchestrator
     github: "Issue or Pull Request labeled blocked (plus needs-human when a human must act)"
@@ -225,6 +232,14 @@ transitions:
     to: awaiting-human-approval
     by: security-reviewer
     condition: Both review outcomes are NO BLOCKING FINDINGS.
+  - from: merged
+    to: documentation
+    by: orchestrator
+    condition: The last task Pull Request of a feature is merged and the documentation skip rule does not apply.
+  - from: documentation
+    to: qa
+    by: technical-writer
+    condition: The documentation Pull Request is open and docs_audit.py reports zero errors.
   - from: awaiting-human-approval
     to: merged
     by: human
@@ -389,6 +404,9 @@ labels:
   "agent:security":
     color: "1d76db"
     description: Owned by the Security Reviewer agent.
+  "agent:docs":
+    color: "1d76db"
+    description: Owned by the Technical Writer agent (documentation of a finished feature).
   "agent:ux":
     color: "1d76db"
     description: Owned by the UX Designer agent (UX specification or UX review).
