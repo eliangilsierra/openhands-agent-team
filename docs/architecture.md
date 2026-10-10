@@ -91,6 +91,7 @@ Nine roles, each an Agent Profile with a role file and one or more Skills:
 | [QA Engineer](../agents/qa-engineer.md) | Subagent · haiku | bug-reproduction, qa |
 | [Code Reviewer](../agents/code-reviewer.md) | Subagent · sonnet | code-review |
 | [Security Reviewer](../agents/security-reviewer.md) | Subagent · sonnet | security-review |
+| [UX Designer](../agents/ux-designer.md) | Subagent · sonnet | ux-design, ux-review (conditional) |
 | [Orchestrator](../agents/orchestrator.md) | Coordinator (sonnet) | coordination |
 
 The lifecycle that connects them is described in [workflow.md](workflow.md).

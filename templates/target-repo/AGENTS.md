@@ -25,7 +25,8 @@ rules most often broken:
 - **One stage of one work item per subagent.** Do your role's stage, update your checkpoint and
   report with the result contract. Never take another role or continue with the next stage.
 - **Never review your own work.** QA, Code Review and Security Review are separate subagents and
-  none of them is skipped; after QA passes, the two reviews run in parallel.
+  none of them is skipped; after QA passes, the reviews run in parallel (UX review too when the
+  interface changes).
 - **Work in the conversation's current directory** (the workspace the OpenHands interface shows).
   Clone this repository there.
 - **One task Issue = one branch = one Pull Request.** Branch `<feature|bugfix|refactor|chore|docs>/<issue-number>-<short-description>`
@@ -54,6 +55,7 @@ rules most often broken:
 | qa-engineer | testing |
 | code-reviewer | code-review |
 | security-reviewer | security-review |
+| ux-designer | ux-design (web and Android/Kotlin) |
 | orchestrator | orchestration, stack-routing |
 
 The coordinator gives your role and work item in the brief. Use only the skills of your row.

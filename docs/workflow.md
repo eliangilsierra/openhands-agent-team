@@ -8,13 +8,16 @@ and the YAML disagree, the YAML wins and the discrepancy is a bug.
 ## 1. Lifecycle
 
 ```text
-Idea → Product → Research → Architecture → Planning → Development → QA → Review → Security → Human approval → Merge
+Idea → Product → Research → UX design → Architecture → Planning → Development → QA → Review, Security and UX review → Human approval → Merge
 ```
 
 ```mermaid
 flowchart TD
     idea([Idea]) --> pm[Product Manager<br/>product-definition]
     pm -->|open questions| rs[Researcher<br/>research]
+    pm -->|interface changes| ux[UX Designer<br/>ux-design]
+    ux -->|design needed| ar
+    ux -->|no design needed| pl
     pm -->|design needed| ar[Architect<br/>architecture]
     pm -->|no design needed| pl[Planner<br/>planning]
     rs -->|design needed| ar
@@ -24,15 +27,17 @@ flowchart TD
     dev -->|Pull Request| qa[QA Engineer<br/>qa]
     qa -->|PASS| cr[Code Reviewer<br/>code-review]
     qa -->|PASS, in parallel| sr[Security Reviewer<br/>security-review]
+    qa -->|PASS, interface changes| uxr[UX Designer<br/>ux-review]
     cr -->|NO BLOCKING FINDINGS| ha{{Human approval<br/>awaiting-human-approval}}
     sr -->|NO BLOCKING FINDINGS| ha
+    uxr -->|NO BLOCKING FINDINGS| ha
     ha -->|approve and merge| merged([Merged])
 ```
 
-Research and architecture are **conditional** stages; their skip rules are in
-`config/workflow.yaml` (`skip_when`). QA, Code Review, Security Review and human approval are
-**never** skipped for a Pull Request. After QA `PASS`, Code Review and Security Review run in
-parallel. All stages run as subagents of one coordinator session
+Research, UX design, architecture and UX review are **conditional** stages; their skip rules are in
+`config/workflow.yaml` (`skip_when`): the UX stages run only for interface changes (ADR-0005). QA,
+Code Review, Security Review and human approval are **never** skipped for a Pull Request. After QA
+`PASS`, Code Review, Security Review and (for interface changes) UX Review run in parallel. All stages run as subagents of one coordinator session
 ([docs/subagents.md](subagents.md)); the team stops only for ADR acceptance and merges, per item.
 
 ## 2. Feedback loops
@@ -123,6 +128,7 @@ came from once the blocker is resolved; any state can be `cancelled` by a human.
 | `bug-reproduction` | QA Engineer | Bug Issue + `agent:qa` |
 | `product-definition` | Product Manager | Issue + `agent:product` |
 | `research` | Researcher | Issue + `agent:research` |
+| `ux-design` | UX Designer | Feature Issue + `agent:ux` (conditional) |
 | `architecture` | Architect | Issue + `agent:architect` |
 | `planning` | Planner | Issue + `agent:planner` |
 | `ready-for-development` | Developer | Task Issue + `ai-ready` + `agent:developer` |
@@ -130,6 +136,7 @@ came from once the blocker is resolved; any state can be `cancelled` by a human.
 | `qa` | QA Engineer | Pull Request + `agent:qa` |
 | `code-review` | Code Reviewer | Pull Request + `agent:reviewer` |
 | `security-review` | Security Reviewer | Pull Request + `agent:security` |
+| `ux-review` | UX Designer | Pull Request + `agent:ux` (conditional, parallel) |
 | `awaiting-human-approval` | human | Pull Request + `needs-human`, checks green |
 | `merged` | human | Pull Request merged, task Issue closed |
 | `blocked` | Orchestrator | `blocked` (+ `needs-human`) and an escalation comment |

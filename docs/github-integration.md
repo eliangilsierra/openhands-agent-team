@@ -43,14 +43,16 @@ descriptions) are in [config/workflow.yaml](../config/workflow.yaml) under `labe
 | `agent:qa` | Owned by QA Engineer | Same | Same |
 | `agent:reviewer` | Owned by Code Reviewer | Same | Same |
 | `agent:security` | Owned by Security Reviewer | Same | Same |
+| `agent:ux` | Owned by UX Designer (UX specification or UX review) | Same | Same |
 | `blocked` | Cannot continue; reason in a comment | Any agent or human | Agent or human who resolved the blocker |
 | `needs-human` | A human must decide or approve | Any agent | Humans only |
-| `changes-requested` | QA `FAIL` or review outcome `CHANGES REQUESTED`; blocks the Pull Request check | QA Engineer, Code Reviewer, Security Reviewer | The same role when the next cycle passes |
+| `changes-requested` | QA `FAIL` or review outcome `CHANGES REQUESTED`; blocks the Pull Request check | QA Engineer, Code Reviewer, Security Reviewer, UX Designer | The same role when the next cycle passes |
 
 Label rules:
 
 - At most one `agent:*` label at any time: it names the current owner. Exception: a Pull Request in
-  parallel review carries `agent:reviewer` and `agent:security` together.
+  parallel review carries `agent:reviewer` and `agent:security` together, plus `agent:ux` for
+  interface changes.
 - `blocked` always has an escalation comment (what, why, what was tried, who can unblock).
 - Do not create additional workflow labels without changing `config/workflow.yaml` through a
   reviewed Pull Request. Type information (feature, bug, …) comes from the Issue form and title
@@ -68,6 +70,7 @@ gh label create "agent:developer" --color 1d76db --description "Owned by the Dev
 gh label create "agent:qa" --color 1d76db --description "Owned by the QA Engineer agent" --force
 gh label create "agent:reviewer" --color 1d76db --description "Owned by the Code Reviewer agent" --force
 gh label create "agent:security" --color 1d76db --description "Owned by the Security Reviewer agent" --force
+gh label create "agent:ux" --color 1d76db --description "Owned by the UX Designer agent" --force
 gh label create "blocked" --color b60205 --description "Work cannot continue until a named dependency or decision is resolved" --force
 gh label create "needs-human" --color d93f0b --description "A human decision or approval is required" --force
 gh label create "changes-requested" --color e99695 --description "QA or a reviewer requested changes; the pull request cannot be merged until it is removed" --force

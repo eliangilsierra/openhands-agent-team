@@ -69,7 +69,8 @@ Repeat until every item is done or waiting on a human:
 1. Re-read GitHub for the items on the board (labels, new comments, merged pull requests).
 2. Choose the next stage of each item with the transitions of `config/workflow.yaml`:
    - new request → `product-manager`; research only when the requirements list open questions that
-     block a decision; `architect` unless the architecture `skip_when` rule clearly applies;
+     block a decision; `ux-designer` (`ux-design`) when the feature changes a user-facing interface;
+     `architect` unless the architecture `skip_when` rule clearly applies;
    - requirements (and accepted ADRs) ready → `planner`;
    - `ai-ready` tasks → the Developer specialist chosen by
      `select_specialist.py --profile .agent-state/stack-profile.json --issue <n>` (`developer-react`,
@@ -77,7 +78,8 @@ Repeat until every item is done or waiting on a human:
      (`opus` for `Complexity: L`, otherwise the role's model) as the delegation's model, within the
      parallelism rules. A `split` decision sends the task back to `planner` with the candidates instead;
    - new or updated pull request → `qa-engineer`; QA `PASS` → `code-reviewer` and `security-reviewer`
-     **in parallel**; both `NO BLOCKING FINDINGS` → add `needs-human` (human gate: merge);
+     **in parallel**, plus `ux-designer` (`ux-review`) when the Pull Request changes interface files;
+     every review `NO BLOCKING FINDINGS` → add `needs-human` (human gate: merge);
    - `changes-requested` or QA `FAIL` → the same specialist on the same branch again (cycle + 1,
      maximum 3).
 3. Delegate every stage that is ready, up to the limits, with a brief (step 4). Run independent

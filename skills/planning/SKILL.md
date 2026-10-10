@@ -54,7 +54,9 @@ and trace back to requirements so nothing is lost and nothing is added.
    `Complexity: S|M|L`: S is a local change with obvious tests, M a normal feature slice, L concurrency,
    security-sensitive code, a data migration, changes across several modules, or a task that already
    failed once. L tasks run on Opus; the rest on Sonnet.
-6. **Write each task Issue** with the sections below. Copy the minimum context needed and link the
+6. **Write each task Issue** with the sections below. When the feature has a UX specification (comment
+   `**UX specification** · UX Designer`), copy the `UX-AC-n` items that apply into the task's
+   acceptance criteria and link the specification in Context. Copy the minimum context needed and link the
    rest. Assign `AC` IDs from the feature (and task-specific ones, `T-AC-n`, where a task needs
    finer criteria).
 
