@@ -80,6 +80,12 @@ for (const which of ['ai', 'kit']) {
   check(t('two agent labels fail'), /More than one agent/.test(m.core.failed || ''));
   m = await run(which, mk({ labels: [{ name: 'agent:reviewer' }, { name: 'agent:security' }] }), okCommits);
   check(t('parallel review labels pass'), m.core.failed === null);
+  m = await run(which, mk({ labels: [{ name: 'agent:reviewer' }, { name: 'agent:security' }, { name: 'agent:ux' }] }), okCommits);
+  check(t('parallel review with UX passes'), m.core.failed === null);
+  m = await run(which, mk({ labels: [{ name: 'agent:reviewer' }, { name: 'agent:ux' }] }), okCommits);
+  check(t('UX review without security review fails'), /More than one agent/.test(m.core.failed || ''));
+  m = await run(which, mk({ labels: [{ name: 'agent:qa' }, { name: 'agent:ux' }] }), okCommits);
+  check(t('UX label with QA fails'), /More than one agent/.test(m.core.failed || ''));
   m = await run(which, mk({ labels: [{ name: 'agent:developer' }, { name: 'changes-requested' }] }), okCommits);
   check(t('changes-requested blocks the pull request'), /changes-requested/.test(m.core.failed || ''));
 }
@@ -99,6 +105,8 @@ let m = await run('ai', mk({ labels: [{ name: 'needs-human' }] }), okCommits);
 check('[ai] needs-human summary', m.core.summary.parts.join(' ').includes('Awaiting a human'));
 m = await run('ai', mk(), okCommits);
 check('[ai] names next profile', m.core.summary.parts.join(' ').includes('qa-engineer'));
+m = await run('ai', mk({ labels: [{ name: 'agent:reviewer' }, { name: 'agent:security' }, { name: 'agent:ux' }] }), okCommits);
+check('[ai] names the three parallel reviewers', m.core.summary.parts.join(' ').includes('ux-designer'));
 
 // task-readiness regression (unchanged script)
 const sections = ['Parent issue','Context','Objective','Scope','Out of scope','Technical approach','Dependencies','Acceptance criteria','Testing requirements','Definition of Done'];
