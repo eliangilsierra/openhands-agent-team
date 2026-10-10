@@ -19,6 +19,7 @@ specific to that role and never relaxes the global contract.
 | Code Reviewer | [code-reviewer.md](code-reviewer.md) | Subagent | code-review | `agent:reviewer` |
 | Security Reviewer | [security-reviewer.md](security-reviewer.md) | Subagent | security-review | `agent:security` |
 | UX Designer | [ux-designer.md](ux-designer.md) | Subagent | ux-design | `agent:ux` |
+| Technical Writer | [technical-writer.md](technical-writer.md) | Subagent | technical-writing | `agent:docs` |
 | Orchestrator | [orchestrator.md](orchestrator.md) | Coordinator (main session) | orchestration, stack-routing | — |
 
 The machine-readable version of this table is [config/agents.yaml](../config/agents.yaml); access
@@ -66,6 +67,7 @@ pastes prompts by hand. See [docs/subagents.md](../docs/subagents.md).
 | Code Reviewer | `sonnet` | opus | R1 | 2 |
 | Security Reviewer | `sonnet` | opus | R1 | 2 |
 | UX Designer | `sonnet` | opus | R2 | 1 |
+| Technical Writer | `sonnet` (medium effort) | opus | R3 | 1 |
 
 ## Ownership boundaries at a glance
 
@@ -80,6 +82,7 @@ pastes prompts by hand. See [docs/subagents.md](../docs/subagents.md).
 | Code Reviewer | no | no | no | no | comment / request changes | handoff |
 | Security Reviewer | no | no | no | no | comment / request changes | handoff |
 | UX Designer | no | no | no | no | comment | handoff |
+| Technical Writer | `docs/` branches | README, CHANGELOG, `docs/` | no | yes | no | handoff |
 | Orchestrator | no | no | no | no | no | manage |
 
 No agent merges, approves or writes to `main`.

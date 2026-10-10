@@ -32,10 +32,13 @@ flowchart TD
     sr -->|NO BLOCKING FINDINGS| ha
     uxr -->|NO BLOCKING FINDINGS| ha
     ha -->|approve and merge| merged([Merged])
+    merged -->|last task of a feature| docs[Technical Writer<br/>documentation]
+    docs -->|docs/ Pull Request| qa
 ```
 
 Research, UX design, architecture and UX review are **conditional** stages; their skip rules are in
-`config/workflow.yaml` (`skip_when`): the UX stages run only for interface changes (ADR-0005). QA,
+`config/workflow.yaml` (`skip_when`): the UX stages run only for interface changes, and `documentation` once per finished feature that
+changed behaviour, interfaces, configuration, architecture or operation (ADR-0005). QA,
 Code Review, Security Review and human approval are **never** skipped for a Pull Request. After QA
 `PASS`, Code Review, Security Review and (for interface changes) UX Review run in parallel. All stages run as subagents of one coordinator session
 ([docs/subagents.md](subagents.md)); the team stops only for ADR acceptance and merges, per item.
@@ -139,6 +142,7 @@ came from once the blocker is resolved; any state can be `cancelled` by a human.
 | `ux-review` | UX Designer | Pull Request + `agent:ux` (conditional, parallel) |
 | `awaiting-human-approval` | human | Pull Request + `needs-human`, checks green |
 | `merged` | human | Pull Request merged, task Issue closed |
+| `documentation` | Technical Writer | Feature Issue + `agent:docs`, one `docs/` Pull Request (conditional) |
 | `blocked` | Orchestrator | `blocked` (+ `needs-human`) and an escalation comment |
 | `cancelled` | human | Closed as not planned / PR closed unmerged |
 

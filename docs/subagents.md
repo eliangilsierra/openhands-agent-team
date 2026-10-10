@@ -50,6 +50,7 @@ validator checks that they agree.
 | code-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
 | security-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
 | ux-designer | sonnet | high | 40 | 20 | opus | R2 | 1 |
+| technical-writer | sonnet | medium | 60 | 30 | opus | R3 | 1 |
 
 Every subagent preloads only its skills, keeps lessons in user-scope memory
 (`~/.claude/agent-memory/<agent>/MEMORY.md`) and ends with the **result contract**:
@@ -183,7 +184,7 @@ compaction, so these thresholds and the context guard are the automatic mechanis
 | R0 | coordinator | `.agent-state/` | Any git write, merges, approvals |
 | R1 | researcher, qa-engineer, code-reviewer, security-reviewer | Own memory and `.agent-state/` | Any git write; files elsewhere |
 | R2 | product-manager, planner, ux-designer | Own memory and `.agent-state/` (Issues and comments through `gh`) | Any git write; files elsewhere |
-| R3 | architect | `docs/architecture/`, `docs/decisions/`, `docs/research/` | Pushes other than `docs/*` branches |
+| R3 | architect, technical-writer | `docs/architecture/`, `docs/decisions/`, `docs/research/` | Pushes other than `docs/*` branches |
 | R4 | developer and its specialists | Task files in its worktree | `.github/workflows/`, secret files, pushes other than `feature/`, `bugfix/`, `refactor/` or `chore/` branches |
 
 For everyone, the hooks deny: pushes to `main` or `master`, force pushes, `git merge` while on `main`,
