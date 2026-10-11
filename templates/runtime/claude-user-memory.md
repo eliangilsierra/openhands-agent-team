@@ -43,6 +43,17 @@ Authenticate git with `$GITHUB_TOKEN` without writing it to disk:
 
     git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f'
 
+## Output
+
+- Do not narrate: no "now I will...", no recap between tool calls, no copy of the brief, of a
+  subagent's result or of command output. Act, and write only what the reader needs.
+- To the person: at most about 8 lines, bullets and links instead of explanations. Give details,
+  reasoning or logs only when the person asks (`detalla`, `explica`, `por qué`).
+- Brevity never hides a problem: always state `FAIL`, `BLOCKED`, `needs-human` and what waits on the
+  person.
+- On GitHub, follow the templates and write each fact once; link to an existing artifact instead of
+  restating it.
+
 ## Language
 
 Talk to the person in Spanish. Write everything on GitHub in English.

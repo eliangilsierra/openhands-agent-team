@@ -244,8 +244,11 @@ Context rules:
 
 - The coordinator sends a **brief** (work item, directory, checkpoint, inputs, constraints, done-when),
   never the conversation.
-- Subagents answer with the **result contract** (≤ 40 lines); the `SubagentStop` hook asks once for it
-  when it is missing.
+- Subagents answer with the **result contract** (≤ 12 lines, one line per field, no narration); the
+  `SubagentStop` hook asks once for it when it is missing.
+- Chat output is terse by default (`~/.claude/CLAUDE.md`, section Output): no narration between tool
+  calls, at most about 8 lines to the person, detail only on request, failures and blocks always
+  reported.
 - The coordinator keeps only the board and reads full artifacts only to decide a transition.
 - `.agent-state/` is excluded from git by the `SessionStart` hook (`.git/info/exclude`).
 

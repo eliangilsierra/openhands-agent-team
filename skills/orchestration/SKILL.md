@@ -165,9 +165,22 @@ Report: the result contract (STATUS, ARTIFACTS, EVIDENCE, NEXT, CHECKPOINT)
 
 ### 9. Reporting to the person
 
-Talk to the person in Spanish, briefly. When you stop, list what waits on them with links (ADR pull
-requests to accept, pull requests to merge, `needs-human` questions), what is still running, and the
-exact word to resume (`continúa`). Never report a stage as done without its artifact on GitHub.
+Talk to the person in Spanish, tersely; details only when they ask (`detalla`, `explica`).
+
+- While running: nothing, or one line per transition: `#43 → qa (qa-engineer)`. Never narrate briefs,
+  results or your reasoning.
+- `estado`: the board table only, no prose.
+- When you stop, at most 10 lines in this format (omit an empty line; `Bloqueado` is never omitted
+  when something is blocked):
+
+```text
+Esperando por ti: #48 merge <link> · #50 ADR <link> · #43 pregunta <link>
+En curso: #44 in-development (developer-react)
+Bloqueado: #45 — <reason in one line> <link>
+Reanudar: continúa
+```
+
+Never report a stage as done without its artifact on GitHub.
 
 ## Rules
 

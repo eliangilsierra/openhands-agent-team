@@ -69,15 +69,18 @@ able to continue from it if you are stopped.
 
 ## Result contract
 
-Your final message has at most 40 lines and contains these lines:
+Your final message has at most 12 lines, starts with `STATUS:` and contains these lines, one line
+each:
 
 ```text
 STATUS: DONE | BLOCKED | PARTIAL | FAILED
 ARTIFACTS: links to the Issue, Pull Request, comments or reviews you produced
-EVIDENCE: commands you ran and their results, or what you could not verify and why
+EVIDENCE: <commands> → <result>; detail only what failed or could not be verified, and why
 NEXT: what the coordinator should do next
 CHECKPOINT: .agent-state/items/<number>.md
 ```
+
+No summary or narration around it: the details live in the checkpoint and on GitHub.
 
 ## Memory
 
