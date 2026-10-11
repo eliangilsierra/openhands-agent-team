@@ -7,6 +7,8 @@ Owner: Researcher · Skill: skills/research/SKILL.md
 Persist as: comment on the research Issue; optionally docs/research/<issue>-<slug>.md via a docs/ PR.
 Every finding carries exactly one label: FACT, EVIDENCE, ASSUMPTION, INTERPRETATION, RECOMMENDATION.
 Cite only sources opened in this session. Record version/date and access date for each source.
+Aim for at most about 1 500 words. One sentence per finding; link sources instead of transcribing
+them. The Summary must stand alone. Omit an empty section rather than writing "None".
 -->
 
 **Issue:** #<n> · **Requested by:** <role or @human> · **Time box:** <hours> · **Date:** <YYYY-MM-DD>
@@ -71,6 +73,8 @@ Cite only sources opened in this session. Record version/date and access date fo
 
 ## Appendix: reproductions
 
+Only reproductions that support a `FACT`, trimmed to the lines that prove it:
+
 ```text
-<commands run in the sandbox and their relevant output>
+<command run in the sandbox and the relevant output lines>
 ```

@@ -57,7 +57,8 @@ and trace back to requirements so nothing is lost and nothing is added.
 6. **Write each task Issue** with the sections below. When the feature has a UX specification (comment
    `**UX specification** · UX Designer`), copy the `UX-AC-n` items that apply into the task's
    acceptance criteria and link the specification in Context. Copy the minimum context needed and link the
-   rest. Assign `AC` IDs from the feature (and task-specific ones, `T-AC-n`, where a task needs
+   rest: Context and Technical approach cite sections (`architecture §7.1`, `ADR-0004`) instead of
+   quoting them, and Definition of Done lists only task-specific items after "AGENTS.md §12, plus:". Assign `AC` IDs from the feature (and task-specific ones, `T-AC-n`, where a task needs
    finer criteria).
 
    ```markdown
@@ -89,7 +90,8 @@ and trace back to requirements so nothing is lost and nothing is added.
    Issue; create the task Issues; append a "Tasks" checklist to the feature Issue; label tasks
    that pass the checklist and have no open dependencies `ai-ready` + `agent:developer`; label
    the rest `agent:planner` (internal dependency) or `blocked` (external dependency, with a comment).
-10. **Hand off.** Remove `agent:planner` from the feature Issue and comment the list of ready tasks.
+10. **Hand off.** Remove `agent:planner` from the feature Issue and comment one line with the ready
+    task numbers; the plan and the "Tasks" checklist already describe them.
 
 ## Rules
 
@@ -102,7 +104,8 @@ and trace back to requirements so nothing is lost and nothing is added.
 - Testing requirements are concrete: "Unit tests for `ThrottleService.recordFailure` covering
   threshold, reset on success and window expiry; integration test for `POST /login` returning 429"
   — not "add tests".
-- Each task's Definition of Done includes AGENTS.md section 12 plus task-specific items.
+- Each task's Definition of Done references AGENTS.md section 12 and lists only task-specific items
+  (or "AGENTS.md §12, no task-specific items").
 - Only the Planner (or a human) adds `ai-ready`.
 
 ## Required outputs

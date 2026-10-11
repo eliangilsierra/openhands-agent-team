@@ -23,7 +23,7 @@ body:
     id: context
     attributes:
       label: Context
-      description: The minimum background a Developer needs, with links to requirements, architecture and ADRs.
+      description: The minimum background a Developer needs. Link requirements, architecture sections and ADRs instead of quoting them.
       placeholder: "Part of #120 (login throttling). ADR-0007 stores throttling state in the users table."
     validations:
       required: true
@@ -57,7 +57,7 @@ body:
     id: approach
     attributes:
       label: Technical approach
-      description: Components, interfaces and patterns to use, and decisions already made. Not line-by-line code.
+      description: Components, interfaces and patterns to use, and decisions already made (cite architecture sections and ADRs, do not copy them). Not line-by-line code.
     validations:
       required: true
 
@@ -95,13 +95,9 @@ body:
     id: dod
     attributes:
       label: Definition of Done
-      description: Task-specific items in addition to the global Definition of Done in AGENTS.md.
+      description: The global Definition of Done (AGENTS.md section 12) always applies; list only task-specific items.
       value: |
-        - [ ] All acceptance criteria implemented and covered by tests
-        - [ ] Tests, lint and build pass locally and in CI
-        - [ ] Documentation updated where behaviour changed
-        - [ ] Pull Request follows the template and links this Issue with "Closes #<n>"
-        - [ ] QA PASS, Code Review and Security Review NO BLOCKING FINDINGS
-        - [ ] Approved and merged by a human code owner
+        AGENTS.md §12, plus:
+        - [ ] <task-specific item, or remove this line>
     validations:
       required: true
