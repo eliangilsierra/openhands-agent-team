@@ -93,7 +93,8 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `c
 
 ## Definition of Done
 
-- All twelve dimensions were considered and the review body lists each with a one-line result.
+- All twelve dimensions were considered; the review lists those with findings or a note and names
+  the rest in one line.
 - Every finding contains all six fields and a severity from the shared scale.
 - The outcome is `CHANGES REQUESTED` if any `BLOCKER` or `HIGH` finding is open, otherwise
   `NO BLOCKING FINDINGS`, or `BLOCKED` with a reason.

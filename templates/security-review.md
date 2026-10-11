@@ -7,21 +7,20 @@ Owner: Security Reviewer · Skill: skills/security-review/SKILL.md
 Persist as: the body of a Pull Request review (event REQUEST_CHANGES or COMMENT, never APPROVE).
 Never include a secret value anywhere in this review; report locations only.
 Severity: BLOCKER, HIGH, MEDIUM, LOW, NIT. Outcome: CHANGES REQUESTED, NO BLOCKING FINDINGS, BLOCKED.
+This review reports issues found in the reviewed scope with the methods listed. It is not a statement
+that the system is secure. Do not restate this in the review.
+Consider every review area; list a row only for areas with findings or that the change touches, with
+what was checked. Name the remaining areas in the two summary lines.
+Do not repeat build or test results that the QA report gives for the same commit: link it.
+Cycle 2 and later: use the "Re-review (cycle ≥ 2)" format at the end instead of the full review.
 -->
 
 ## Outcome
 
 **<CHANGES REQUESTED | NO BLOCKING FINDINGS | BLOCKED>** — <n> BLOCKER · <n> HIGH · <n> MEDIUM · <n> LOW · <n> NIT
 
-| Field | Value |
-| --- | --- |
-| Pull Request | #<n> at commit `<sha>` |
-| Task / requirements | #<task> · #<feature> |
-| Architecture / trust boundaries | <link> or "None" |
-| Review cycle | <1 / 2 / 3> of 3 |
-
-This review reports issues found in the reviewed scope with the methods listed below. It is not a
-statement that the system is secure.
+PR #<n> at `<short sha>` · Task #<task> · Trust boundaries: <architecture link> or "None" · Cycle
+<1 / 2 / 3> of 3
 
 ## Attack surface
 
@@ -35,28 +34,15 @@ New or updated dependencies: <package@version — reason> or "None".
 
 | Area | Result | What was checked |
 | --- | --- | --- |
-| Authentication | <No issue found / SR-n / Not applicable — reason> | |
-| Authorization | | |
-| IDOR | | |
-| Privilege escalation | | |
-| Secrets | | |
-| Input validation | | |
-| Injection (SQL, command, template) | | |
-| XSS | | |
-| CSRF | | |
-| SSRF | | |
-| Path traversal | | |
-| File uploads | | |
-| Dependencies | | |
-| Sensitive information | | |
-| Logging | | |
-| Encryption | | |
-| CORS | | |
-| Security headers | | |
-| Containers | | |
-| CI/CD | | |
-| Infrastructure | | |
-| Insecure defaults | | |
+| <Input validation> | <No issue found / SR-n> | <the specific check> |
+
+No issue found: <areas checked with no finding, comma-separated>.
+Not applicable: <areas, comma-separated> (<one-line reason, e.g. no HTTP output, no file handling>).
+
+Areas: authentication, authorization, IDOR, privilege escalation, secrets, input validation, injection
+(SQL, command, template), XSS, CSRF, SSRF, path traversal, file uploads, dependencies, sensitive
+information, logging, encryption, CORS, security headers, containers, CI/CD, infrastructure, insecure
+defaults. <!-- reference list; do not copy into the review -->
 
 ## Findings
 
@@ -75,11 +61,9 @@ New or updated dependencies: <package@version — reason> or "None".
 | --- | --- | --- |
 | <npm audit --omit=dev / pip-audit / project SAST / secret scan> | <summary> | <verified findings → SR-n> |
 
-## Limitations
+Limitations: <areas not reviewed, tools unavailable, environment differences> or "None".
 
-- <areas not reviewed, tools unavailable, environment differences> or "None"
-
-## Risk acceptance (if any)
+## Risk acceptance (only when a HIGH finding is accepted)
 
 | Finding | Accepted by | Link to written acceptance | Follow-up Issue |
 | --- | --- | --- | --- |
@@ -87,6 +71,20 @@ New or updated dependencies: <package@version — reason> or "None".
 
 ## Hand-off
 
-- NO BLOCKING FINDINGS → `needs-human` (awaiting human approval)
-- CHANGES REQUESTED → `agent:developer`
-- BLOCKED → `<role>` with reason
+NO BLOCKING FINDINGS → `needs-human` (awaiting human approval) · CHANGES REQUESTED → `agent:developer` ·
+BLOCKED → `<role>` with reason
+
+## Re-review (cycle ≥ 2)
+
+```markdown
+**Security review (cycle <n>)** · Security Reviewer · state: security-review
+
+**<CHANGES REQUESTED | NO BLOCKING FINDINGS | BLOCKED>** at `<short sha>` · previous review: <link>
+
+| Finding | Severity | Status | Note |
+| --- | --- | --- | --- |
+| SR-<n> | <severity> | fixed in `<sha>` / not fixed / disputed | <how the fix was verified> |
+
+New changes reviewed: <files>; attack surface changed: no <!-- or the new rows -->.
+New findings: none <!-- or SR-<n> in the full finding format -->. Tooling re-run: <command> → <result>.
+```

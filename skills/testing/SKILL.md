@@ -52,7 +52,9 @@ criteria say and whether it breaks anything that worked before.
    scripts) runs the module's commands and prints the evidence rows; it does not replace checks
    derived from the acceptance criteria. For manual/E2E checks record the
    steps, input data, expected and observed result; capture screenshots or response bodies when
-   useful.
+   useful. In the report, a `PASS` row carries short evidence (test file and name, or the command and
+   its count); trimmed output belongs only to `FAIL` and `BLOCKED` checks. Unit, lint, type check and
+   build share one "Validation" row.
 5. **Classify** each check:
 
    | Result | Meaning | Evidence required |
@@ -70,6 +72,11 @@ criteria say and whether it breaks anything that worked before.
    and `agent:security` (the two reviews run in parallel) and remove `changes-requested` if present.
    `FAIL` → label `agent:developer` and add `changes-requested`. `BLOCKED` → add `blocked` (and
    `needs-human` if a human must act), keep `agent:qa`.
+
+**Re-review (cycle 2 and later).** Re-run the validation and every check that covers changed code,
+then post the "Re-review (cycle ≥ 2)" format of the template: the verdict at the new commit, a link to
+the previous report, the checks whose result changed or are new, and the IDs of unchanged checks.
+Never re-post the full report for a fix cycle.
 
 **Bug reproduction variant:** the single check is "the reported behaviour reproduces". Follow the
 reporter's steps on the version they used and on current `main`. Report `PASS` when the reported

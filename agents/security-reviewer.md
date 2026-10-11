@@ -87,8 +87,8 @@ Full specification: [config/permissions.yaml](../config/permissions.yaml) → `s
 
 ## Definition of Done
 
-- Every review area in the security-review Skill has a result: finding(s), no issue found, or not
-  applicable with reason.
+- Every review area in the security-review Skill is accounted for: a row with what was checked, or
+  named in the "No issue found" or "Not applicable" line (with reason).
 - Every finding has all six fields and a severity from the shared scale.
 - The review states its limitations (what was not examined, which tools were unavailable).
 - The outcome is `CHANGES REQUESTED`, `NO BLOCKING FINDINGS` or `BLOCKED`.

@@ -33,11 +33,13 @@ reviewed scope with the methods used" — never "the system is secure".
    Classify data handled (public, internal, personal, secret).
 2. **Trace untrusted input.** For each entry point, follow input from source to every sink
    (database query, shell, filesystem, HTML output, outbound request, deserialiser, log).
-3. **Review each area** below. Record for every area: finding(s), "no issue found" with what was
-   checked, or "not applicable" with the reason.
+3. **Review each area** below. In the review, give a row with what was checked for every area with a
+   finding or that the change touches; name the other areas in the "No issue found" and "Not
+   applicable" lines (with the reason).
 4. **Run tooling** available in the sandbox: dependency audit for the ecosystem
    (`npm audit`, `pip-audit`, `cargo audit`, `govulncheck`, …), the project's SAST if configured,
-   a secret scan over the diff. Treat tool output as leads; verify each before reporting.
+   a secret scan over the diff. Treat tool output as leads; verify each before reporting. Build and
+   test results belong to the QA report for the same commit: link it instead of repeating them.
 5. **Rate severity** by exploitability (who can reach it, preconditions) and impact (what an
    attacker gains) *in this system*.
 6. **Write findings** in the format below with concrete remediation and how to test the fix.
@@ -50,6 +52,10 @@ reviewed scope with the methods used" — never "the system is secure".
    `REQUEST_CHANGES` on your own Pull Request: submit `COMMENT` with the outcome in the body and, for
    `CHANGES REQUESTED`, add the label `changes-requested` (it makes the Pull Request check fail).
    Never submit `APPROVE`.
+
+**Re-review.** Verify each earlier finding (`fixed` / `not fixed` / `disputed`), review the new
+changes and re-run the tooling, then post the "Re-review (cycle ≥ 2)" format of the template, never the
+full review again.
 
 ### Review areas
 
@@ -122,7 +128,8 @@ exploitation; `LOW` — hardening with limited impact; `NIT` — informational.
 ## Quality checklist
 
 - [ ] Attack surface is mapped (entry points, boundaries, data classes, dependencies).
-- [ ] Every review area has a result with what was checked or why it is not applicable.
+- [ ] Every review area is accounted for: a row with what was checked, or named in the "No issue
+  found" or "Not applicable" line with the reason.
 - [ ] Every injection-type finding includes a source-to-sink trace.
 - [ ] Every finding has all six fields and a severity from the shared scale.
 - [ ] Tool output was verified before being reported.
