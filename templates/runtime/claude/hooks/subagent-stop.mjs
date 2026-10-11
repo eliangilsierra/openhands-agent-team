@@ -26,5 +26,5 @@ fs.mkdirSync(retries, { recursive: true });
 fs.writeFileSync(marker, new Date().toISOString());
 process.stdout.write(JSON.stringify({
   decision: 'block',
-  reason: 'Finish with the result contract: lines STATUS: DONE|BLOCKED|PARTIAL|FAILED, ARTIFACTS:, EVIDENCE:, NEXT: and CHECKPOINT: <path>. Update your checkpoint file first, then reply again in at most 40 lines.',
+  reason: 'Finish with the result contract: lines STATUS: DONE|BLOCKED|PARTIAL|FAILED, ARTIFACTS:, EVIDENCE:, NEXT: and CHECKPOINT: <path>. Update your checkpoint file first, then reply again in at most 12 lines.',
 }));
