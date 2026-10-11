@@ -140,6 +140,29 @@ agents:
       hard: [main protection, merge approval, secret scope]
       soft: [writes limited to docs/architecture/ and docs/decisions/]
 
+  ux-designer:
+    restriction_level: R2
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: comment
+    pull_request_reviews: comment
+    branch_write: none
+    writable_paths: []
+    forbidden_paths: ["application source code", "tests", ".github/workflows/", "docs/decisions/"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: read-only
+    web_access: true
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    notes: Specifications and reviews are GitHub comments and reviews; running the app or previews in the sandbox is allowed for review.
+    enforcement:
+      hard: [main protection, merge approval, secret scope, no APPROVE (hook)]
+      soft: [comments only, accessibility first]
+
   planner:
     restriction_level: R2
     repository_read: true

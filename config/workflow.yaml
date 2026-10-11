@@ -41,6 +41,13 @@ states:
     skip_when: No open technical or product question blocks a decision.
     description: Evidence is collected to answer open questions.
 
+  ux-design:
+    owner: ux-designer
+    github: "Feature Issue labeled agent:ux"
+    conditional: true
+    skip_when: The feature adds or changes no user-facing interface (web page, component or mobile screen).
+    description: The UX specification (flows, screens, states, tokens, accessibility criteria) is written.
+
   architecture:
     owner: architect
     github: "Issue labeled agent:architect"
@@ -80,6 +87,13 @@ states:
     owner: security-reviewer
     github: "Pull Request labeled agent:security"
     description: Security review is performed.
+
+  ux-review:
+    owner: ux-designer
+    github: "Pull Request labeled agent:ux"
+    conditional: true
+    skip_when: The Pull Request changes no interface file (components, screens, styles, layouts, strings, navigation).
+    description: The interface is reviewed for usability and accessibility, in parallel with code and security review.
 
   awaiting-human-approval:
     owner: human
@@ -147,6 +161,22 @@ transitions:
     to: planning
     by: product-manager
     condition: Requirements are complete and architecture can be skipped.
+  - from: product-definition
+    to: ux-design
+    by: product-manager
+    condition: Requirements are complete and the feature changes a user-facing interface.
+  - from: research
+    to: ux-design
+    by: researcher
+    condition: Research answered the questions and the feature changes a user-facing interface.
+  - from: ux-design
+    to: architecture
+    by: ux-designer
+    condition: The UX specification is posted and architectural work is required.
+  - from: ux-design
+    to: planning
+    by: ux-designer
+    condition: The UX specification is posted and architecture can be skipped.
   - from: research
     to: architecture
     by: researcher
@@ -179,6 +209,14 @@ transitions:
     to: security-review
     by: qa-engineer
     condition: QA verdict is PASS. Code review and security review then run in parallel.
+  - from: qa
+    to: ux-review
+    by: qa-engineer
+    condition: QA verdict is PASS and the Pull Request changes interface files. Runs in parallel with code and security review.
+  - from: ux-review
+    to: awaiting-human-approval
+    by: ux-designer
+    condition: Every review outcome is NO BLOCKING FINDINGS.
   - from: code-review
     to: awaiting-human-approval
     by: code-reviewer
@@ -200,22 +238,27 @@ feedback_loops:
     from: qa
     to: in-development
     trigger: QA verdict is FAIL.
-    then: [qa, code-review, security-review]
+    then: [qa, code-review, security-review, ux-review]
   - name: code-review-changes-requested
     from: code-review
     to: in-development
     trigger: Review outcome is CHANGES REQUESTED (any open BLOCKER or HIGH finding).
-    then: [qa, code-review, security-review]
+    then: [qa, code-review, security-review, ux-review]
   - name: security-changes-requested
     from: security-review
     to: in-development
     trigger: Review outcome is CHANGES REQUESTED (any open BLOCKER or HIGH finding).
-    then: [qa, code-review, security-review]
+    then: [qa, code-review, security-review, ux-review]
+  - name: ux-changes-requested
+    from: ux-review
+    to: in-development
+    trigger: Review outcome is CHANGES REQUESTED (any open BLOCKER or HIGH finding).
+    then: [qa, code-review, security-review, ux-review]
   - name: human-changes-requested
     from: awaiting-human-approval
     to: in-development
     trigger: The human reviewer requests changes.
-    then: [qa, code-review, security-review, awaiting-human-approval]
+    then: [qa, code-review, security-review, ux-review, awaiting-human-approval]
   - name: requirement-gap
     from: [planning, in-development, qa]
     to: product-definition
@@ -243,7 +286,7 @@ autonomy:
   gates_are_per_item: true          # while one item waits for a human, independent items continue
   max_concurrent_subagents: 4
   parallel_groups:
-    - [code-review, security-review]  # after QA PASS, on the same pull request
+    - [code-review, security-review, ux-review]  # after QA PASS, on the same pull request (ux-review only for interface changes)
   developer_parallelism:
     max: 3                            # the generalist and all stack specialists together
     requires: [no unmet dependency, disjoint "touches" file sets declared by the Planner, own worktree and branch]
@@ -346,6 +389,9 @@ labels:
   "agent:security":
     color: "1d76db"
     description: Owned by the Security Reviewer agent.
+  "agent:ux":
+    color: "1d76db"
+    description: Owned by the UX Designer agent (UX specification or UX review).
   blocked:
     color: "b60205"
     description: Work cannot continue until a named dependency or decision is resolved.

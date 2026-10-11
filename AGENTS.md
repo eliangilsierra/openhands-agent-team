@@ -67,6 +67,7 @@ Rules:
 | [QA Engineer](agents/qa-engineer.md) | bug-reproduction, qa | `agent:qa` | [testing](skills/testing/SKILL.md) |
 | [Code Reviewer](agents/code-reviewer.md) | code-review | `agent:reviewer` | [code-review](skills/code-review/SKILL.md) |
 | [Security Reviewer](agents/security-reviewer.md) | security-review | `agent:security` | [security-review](skills/security-review/SKILL.md) |
+| [UX Designer](agents/ux-designer.md) | ux-design, ux-review (conditional) | `agent:ux` | [ux-design](skills/ux-design/SKILL.md) |
 | [Orchestrator](agents/orchestrator.md) | coordination, blocked | — | [orchestration](skills/orchestration/SKILL.md) |
 
 The canonical definitions are in [`config/agents.yaml`](config/agents.yaml),
@@ -291,6 +292,7 @@ its own context, model, tools and skills ([docs/subagents.md](docs/subagents.md)
    the feature Issue and a "Checkpoint" comment on the item. Developers push early and open draft Pull
    Requests, so progress never lives only on one machine.
 6. **Labels.** The owning subagent swaps its `agent:*` label for the next owner's; a Pull Request in
-   parallel review carries `agent:reviewer` and `agent:security` together. `changes-requested` marks a
+   parallel review carries `agent:reviewer` and `agent:security` together, plus `agent:ux` when it
+   changes the interface. `changes-requested` marks a
    QA `FAIL` or a review outcome `CHANGES REQUESTED` and blocks the Pull Request check. Remove
    `ai-ready` when development starts. Do not close Issues by hand.

@@ -58,6 +58,13 @@ skills:
     consumers: [developer]
     templates: []
 
+  ux-design:
+    path: skills/ux-design/SKILL.md
+    purpose: Specify and review user interfaces for web and native Android (Kotlin, Jetpack Compose, Material 3) with prioritised rules and WCAG contrast checks.
+    agents: [ux-designer]
+    consumers: [planner, developer, qa-engineer, code-reviewer]
+    templates: [templates/ux-spec.md, templates/ux-review.md]
+
   development:
     path: skills/development/SKILL.md
     purpose: Implement one task Issue on a dedicated branch and deliver a validated Pull Request.

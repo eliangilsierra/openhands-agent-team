@@ -172,10 +172,14 @@ jobs:
 
             const labelNames = pr.labels.map((l) => l.name);
             const agentLabels = labelNames.filter((n) => n.startsWith('agent:'));
-            const parallelReview = agentLabels.length === 2
-              && agentLabels.includes('agent:reviewer') && agentLabels.includes('agent:security');
+            // Parallel review after QA PASS: code review and security review always, UX review (agent:ux)
+            // too when the Pull Request changes the interface (ADR-0005).
+            const reviewLabels = ['agent:reviewer', 'agent:security', 'agent:ux'];
+            const parallelReview = agentLabels.length > 1
+              && agentLabels.includes('agent:reviewer') && agentLabels.includes('agent:security')
+              && agentLabels.every((l) => reviewLabels.includes(l));
             if (agentLabels.length > 1 && !parallelReview) {
-              problems.push(`More than one agent:* label: ${agentLabels.join(', ')}. Exactly one agent owns a Pull Request, except agent:reviewer with agent:security during parallel review.`);
+              problems.push(`More than one agent:* label: ${agentLabels.join(', ')}. Exactly one agent owns a Pull Request, except agent:reviewer with agent:security (and agent:ux for interface changes) during parallel review.`);
             }
             if (labelNames.includes('changes-requested')) {
               problems.push('QA or a reviewer requested changes (label changes-requested). Address the findings first.');
@@ -186,6 +190,7 @@ jobs:
               'agent:qa': 'qa-engineer',
               'agent:reviewer': 'code-reviewer',
               'agent:security': 'security-reviewer',
+              'agent:ux': 'ux-designer',
             };
             const labels = pr.labels.map((l) => l.name);
             let next = 'No agent label: the Orchestrator or a human assigns the next owner.';
@@ -195,7 +200,7 @@ jobs:
                 ? `Next: start the \`${profile}\` Agent Profile with its activation prompt (agents/${profile}.md).`
                 : `Label ${agentLabels[0]} is not a Pull Request stage; check config/workflow.yaml.`;
             } else if (parallelReview) {
-              next = 'Parallel review in progress: code-reviewer and security-reviewer.';
+              next = `Parallel review in progress: ${agentLabels.map((l) => profiles[l]).join(', ')}.`;
             } else if (labels.includes('needs-human')) {
               next = 'Awaiting a human decision (needs-human). Only a human code owner approves and merges.';
             }

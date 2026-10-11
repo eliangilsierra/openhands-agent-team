@@ -75,6 +75,7 @@ export const LEVELS = {
   'qa-engineer': 'R1',
   'code-reviewer': 'R1',
   'security-reviewer': 'R1',
+  'ux-designer': 'R2',
   // Developer stack specialists (ADR-0003) inherit the Developer's level. Any other "developer-*"
   // name is unknown and therefore read-only.
   // BEGIN GENERATED SPECIALISTS (scripts/generate_runtime.py from config/specialists.yaml)

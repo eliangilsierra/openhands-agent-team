@@ -49,6 +49,7 @@ validator checks that they agree.
 | qa-engineer | haiku | medium | 50 | 20 | sonnet | R1 | 2 |
 | code-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
 | security-reviewer | sonnet | high | 50 | 20 | opus | R1 | 2 |
+| ux-designer | sonnet | high | 40 | 20 | opus | R2 | 1 |
 
 Every subagent preloads only its skills, keeps lessons in user-scope memory
 (`~/.claude/agent-memory/<agent>/MEMORY.md`) and ends with the **result contract**:
@@ -181,7 +182,7 @@ compaction, so these thresholds and the context guard are the automatic mechanis
 | --- | --- | --- | --- |
 | R0 | coordinator | `.agent-state/` | Any git write, merges, approvals |
 | R1 | researcher, qa-engineer, code-reviewer, security-reviewer | Own memory and `.agent-state/` | Any git write; files elsewhere |
-| R2 | product-manager, planner | Own memory and `.agent-state/` (Issues and comments through `gh`) | Any git write; files elsewhere |
+| R2 | product-manager, planner, ux-designer | Own memory and `.agent-state/` (Issues and comments through `gh`) | Any git write; files elsewhere |
 | R3 | architect | `docs/architecture/`, `docs/decisions/`, `docs/research/` | Pushes other than `docs/*` branches |
 | R4 | developer and its specialists | Task files in its worktree | `.github/workflows/`, secret files, pushes other than `feature/`, `bugfix/`, `refactor/` or `chore/` branches |
 
@@ -208,7 +209,7 @@ as R1.
 | --- | --- |
 | Up to 3 researchers | Independent questions |
 | 3 developers (any specialists) | No unmet dependency and disjoint `Touches:` sets (declared by the planner), own worktree and branch |
-| code-reviewer with security-reviewer | Same Pull Request, after QA `PASS` |
+| code-reviewer with security-reviewer (and ux-designer for interface changes) | Same Pull Request, after QA `PASS` |
 | Reviews of one Pull Request while a developer works on another task | Always |
 
 Never in parallel: product definition, architecture and planning of one feature; two agents on one

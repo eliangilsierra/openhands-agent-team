@@ -197,6 +197,52 @@ agents:
         persisted_in: docs/decisions/ of the target repository via a docs/ branch Pull Request
     hands_off_to: [planner, researcher, product-manager]
 
+  ux-designer:
+    name: UX Designer
+    profile_file: agents/ux-designer.md
+    label: "agent:ux"
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: high
+      max_turns: 40
+      time_budget_minutes: 20
+      escalation: [opus]
+      restriction_level: R2
+      max_parallel: 1
+      isolation: none
+      memory: user
+      context_budget_tokens: 90000
+    subagent:
+      description: "Write the UX specification of a feature with a user interface (web or Android/Kotlin) and review interface Pull Requests for usability and accessibility. Runs in parallel with the code and security reviewers."
+      tools: [Read, Grep, Glob, Bash, Write, Edit, WebFetch]
+      job:
+        - "ux-design: post the UX specification with templates/ux-spec.md as a comment on the feature Issue: flows, screens, loading/empty/error states, tokens, accessibility and numbered UX-AC criteria for the Planner."
+        - "ux-review: review the Pull Request with templates/ux-review.md through gh pr review --comment; check the stack checklist (ux_search.py --checklist --stack ...) and every changed color pair (contrast.py)."
+        - "Android: apply Material 3 and the jetpack-compose rules (48dp targets, TalkBack semantics, font scaling, edge-to-edge, predictive back)."
+        - "Outcome CHANGES REQUESTED: add the label changes-requested. NO BLOCKING FINDINGS: leave the labels to the coordinator."
+      never:
+        - "Modify code or commit files; specifications and reviews are comments."
+        - "Trade accessibility or touch targets for visual style."
+        - "Approve, or write that the change is approved for merge."
+    mission: Make every user-facing change usable, accessible and consistent on web and Android.
+    responsibilities:
+      - Turn requirements into flows, screens, states and UX acceptance criteria
+      - Reuse or propose design tokens and check their contrast
+      - Specify accessibility for web (WCAG 2.2 AA) and Android (Material 3, TalkBack)
+      - Review interface Pull Requests against prioritised, checkable rules
+      - Report findings with severity, location, evidence and recommendation
+    skills: [ux-design]
+    mcp: [github, filesystem, web]
+    outputs:
+      - artifact: UX specification
+        template: templates/ux-spec.md
+        persisted_in: Comment on the feature Issue (consolidated into docs/design/ by the technical writer)
+      - artifact: UX review
+        template: templates/ux-review.md
+        persisted_in: GitHub Pull Request review (COMMENT, never APPROVE)
+    hands_off_to: [architect, planner, developer]
+
   planner:
     name: Planner
     profile_file: agents/planner.md
