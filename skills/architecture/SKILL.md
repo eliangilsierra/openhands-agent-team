@@ -100,8 +100,9 @@ Request, summarise the design on the Issue and request human acceptance of each 
 - `docs/architecture/<issue>-<slug>.md` from [templates/architecture.md](../../templates/architecture.md).
 - `docs/decisions/ADR-NNNN-<slug>.md` for each significant decision, status `Proposed`.
 - A `docs/` branch Pull Request containing both.
-- A design summary comment on the Issue with links, the decisions needing human acceptance, and
-  the hand-off to `agent:planner` once ADRs are accepted.
+- A short comment on the Issue: links to the design Pull Request, the architecture document and the
+  ADRs, the decisions needing human acceptance, and the hand-off to `agent:planner` once ADRs are
+  accepted. Do not restate the design; the documents hold it.
 
 ## Quality checklist
 

@@ -95,6 +95,9 @@ Benchmarks published by the product's vendor are always `EVIDENCE`, never `FACT`
 - Never accept terms, create accounts or bypass paywalls to access a source.
 - Respect copyright: paraphrase; quote only short excerpts.
 - Stay within the time box; report what remains unknown rather than extending silently.
+- Keep the report short: aim for at most about 1 500 words, one sentence per finding, sources linked
+  rather than transcribed, and an appendix limited to reproductions that support a `FACT`. Several
+  questions go into several short reports, not one long one.
 
 ## Required outputs
 

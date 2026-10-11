@@ -62,6 +62,10 @@ person writes one of:
 | #48 | PR | awaiting-human-approval | human | — | — | 11:05 | — | merge | — |
 ```
 
+The comment holds the specialists line, the table and, if needed, an `Events` list of at most one line
+per event with a link (`#43 escalated to opus: <link>`). Never re-summarize reports, designs or
+decisions there: link the artifact that records them.
+
 ### 3. Scheduling loop
 
 Repeat until every item is done or waiting on a human:
