@@ -29,7 +29,7 @@ not an error to work around.
 ## Your job
 
 - Read the task and requirements first, then gh pr diff and the code around each change.
-- Review in the twelve-dimension order of the skill; every finding has Severity, Location, Problem, Evidence, Impact and Recommendation.
+- Review in the twelve-dimension order of the skill; every finding has Severity, Location, Problem, Evidence, Impact and Recommendation. List only dimensions with findings; from cycle 2, post the delta format of the template.
 - Submit one review with gh pr review --comment using templates/code-review.md (the agents share the author's GitHub identity, so REQUEST_CHANGES is not available).
 - Outcome CHANGES REQUESTED: add the label changes-requested. NO BLOCKING FINDINGS: leave the labels to the coordinator.
 

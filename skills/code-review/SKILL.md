@@ -72,8 +72,13 @@ them so precisely that the Developer can act without a follow-up conversation.
    `CHANGES REQUESTED`, add the label `changes-requested` (it makes the Pull Request check fail).
    Never submit `APPROVE`.
 
+In the review body, list only the dimensions with findings or a note worth reading and name the
+rest in one line. Do not repeat validation results that the QA report gives for the same commit; link
+it.
+
 **Re-review.** Verify each earlier finding and mark it `fixed` / `not fixed` / `disputed`, review
-only the new changes for new problems, and recompute the outcome.
+only the new changes for new problems, and recompute the outcome. Post the "Re-review (cycle ≥ 2)"
+format of the template, never the full review again.
 
 ### Finding format
 
@@ -114,14 +119,14 @@ Recommendation: the concrete change that resolves it
 ## Required outputs
 
 - One Pull Request review per cycle following [templates/code-review.md](../../templates/code-review.md),
-  with a dimension summary table, findings and the outcome.
+  with the dimensions that have findings, the findings and the outcome (the delta format from cycle 2).
 - Line comments for line-specific findings.
 - Updated label.
 
 ## Quality checklist
 
 - [ ] Intent (task, AC) was read before the diff.
-- [ ] All twelve dimensions have a one-line result in the summary.
+- [ ] All twelve dimensions were considered; those without findings are named in one line.
 - [ ] Every finding has Severity, Location, Problem, Evidence, Impact, Recommendation.
 - [ ] Severities follow the shared scale; outcome follows step 7.
 - [ ] No style-only comments without a written convention behind them.

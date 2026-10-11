@@ -8,39 +8,33 @@ Persist as: comment on the Pull Request (bug reproduction: comment on the bug Is
 Results use exactly: PASS, FAIL, BLOCKED, NOT APPLICABLE.
 Verdict rule: FAIL if any FAIL; else BLOCKED if any required check is BLOCKED;
 else PASS if every acceptance criterion has at least one PASS.
+Write each fact once: short evidence for PASS rows, full detail only for FAIL and BLOCKED.
+Omit an empty section; state it in the "Failures / Blocked / Flaky" line instead.
+Cycle 2 and later: use the "Re-review (cycle ≥ 2)" format at the end instead of the full report.
 -->
 
 ## Verdict
 
 **<PASS | FAIL | BLOCKED>** — <n> PASS · <n> FAIL · <n> BLOCKED · <n> NOT APPLICABLE
 
-| Field | Value |
-| --- | --- |
-| Pull Request | #<n> at commit `<sha>` |
-| Task / requirements | #<task> · #<feature> (AC-…) |
-| Environment | <OS, runtime versions, database version, browser> |
-| Date | <YYYY-MM-DD> |
-| QA cycle | <1 / 2 / 3> of 3 |
+PR #<n> at `<short sha>` · Task #<task> · Cycle <1 / 2 / 3> of 3 · <runtime versions, OS>
 
 ## Scope
 
-- **Acceptance criteria under test:** <AC-1, AC-2, …>
-- **Affected areas beyond the criteria:** <callers, shared modules, migrations>
 - **Not tested and why:** <item — reason> or "None"
+- **Affected areas beyond the criteria:** <callers, shared modules, migrations> or "None"
 
-## Test plan and results
+## Results
 
-| ID | Check | Level | Covers | Result | Evidence |
-| --- | --- | --- | --- | --- | --- |
-| QA-1 | <AC-1 main case> | Integration | AC-1 | PASS | `<command>` → <observed> |
-| QA-2 | <AC-1 boundary/negative case> | Unit | AC-1 | PASS | `<command>` → <observed> |
-| QA-3 | Regression: <existing behaviour> | Regression | — | PASS | `<command>` → <observed> |
-| QA-4 | Unit test suite | Unit | all | PASS | `<command>` → <n passed, 0 failed> |
-| QA-5 | Lint | Lint | all | PASS | `<command>` → <0 problems> |
-| QA-6 | Static analysis / type check | Static analysis | all | PASS | `<command>` → <result> |
-| QA-7 | Build | Build | all | PASS | `<command>` → <result> |
-| QA-8 | Security checks (dependency audit / secret scan) | Security | all | NOT APPLICABLE | <justification, e.g. no dependency changes and not configured in CI> |
-| QA-9 | E2E: <flow> | E2E | AC-<n> | BLOCKED | <cause, unblock action> |
+| ID | Check | Covers | Result | Evidence |
+| --- | --- | --- | --- | --- |
+| QA-1 | <AC-1 main case> | AC-1 | PASS | `<test file>: <test name>` |
+| QA-2 | <AC-1 negative or boundary case> | AC-1 | PASS | `<test file>: <test name>` |
+| QA-3 | Regression: <existing behaviour> | — | PASS | `<test file>: <test name>` |
+| QA-4 | Validation: unit, lint, type check, build | all | PASS | `<install> && <lint> && <typecheck> && <test> && <build>` → all pass (<n> tests) |
+| QA-5 | Security checks (dependency audit / secret scan) | all | NOT APPLICABLE | <one-line justification> |
+
+Failures / Blocked / Flaky: none <!-- or the sections below, only those with content -->
 
 ## Failures
 
@@ -68,13 +62,29 @@ else PASS if every acceptance criterion has at least one PASS.
 
 ## Flaky behaviour
 
-<Check, number of runs, results per run — or "None observed">
+<Check, number of runs, results per run>
 
 ## Hand-off
 
-- PASS → `agent:reviewer`
-- FAIL → `agent:developer`
-- BLOCKED → keep `agent:qa`, add `blocked` (+ `needs-human` if a human must act)
+PASS → `agent:reviewer` + `agent:security` · FAIL → `agent:developer` · BLOCKED → keep `agent:qa`, add
+`blocked` (+ `needs-human` if a human must act)
+
+## Re-review (cycle ≥ 2)
+
+```markdown
+**QA report (cycle <n>)** · QA Engineer · state: qa
+
+**<PASS | FAIL | BLOCKED>** at `<short sha>` · previous report: <link>
+
+| ID | Result before → now | Evidence |
+| --- | --- | --- |
+| QA-<n> | FAIL → PASS | `<test file>: <test name>` |
+| QA-<new> | new check: PASS | `<test file>: <test name>` |
+| QA-4 | Validation re-run: PASS | `<commands>` → all pass (<n> tests) |
+
+Unchanged checks: <IDs> PASS in the validation re-run (code they cover unchanged since `<previous sha>`).
+Failures / Blocked / Flaky: none <!-- or full detail as in the cycle-1 format -->
+```
 
 ## Bug reproduction (bug Issues only)
 

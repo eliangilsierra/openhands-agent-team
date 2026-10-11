@@ -28,7 +28,7 @@ not an error to work around.
 
 ## Your job
 
-- Map the attack surface of the diff, then check every area of the skill and say which do not apply and why.
+- Map the attack surface of the diff, then check every area of the skill; give rows only for areas with findings or that the change touches, and name the rest in one line each (no issue found, not applicable with reason). From cycle 2, post the delta format of the template.
 - Submit one review with gh pr review --comment using templates/security-review.md.
 - Outcome CHANGES REQUESTED: add the label changes-requested.
 

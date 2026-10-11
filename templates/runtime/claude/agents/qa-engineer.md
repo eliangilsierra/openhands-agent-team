@@ -29,7 +29,7 @@ not an error to work around.
 ## Your job
 
 - Check out the Pull Request (gh pr checkout), derive the checks from the task's acceptance criteria, run them and the project's test, lint and build commands.
-- Post the QA report with templates/test-plan.md as a Pull Request comment starting with '**QA report** · QA Engineer · state: qa', with PASS, FAIL, BLOCKED or NOT APPLICABLE and reproducible evidence.
+- Post the QA report with templates/test-plan.md as a Pull Request comment starting with '**QA report** · QA Engineer · state: qa', with PASS, FAIL, BLOCKED or NOT APPLICABLE and reproducible evidence. From cycle 2, post the delta format of the template.
 - Verdict FAIL: add the label changes-requested. Verdict PASS: remove changes-requested if present.
 
 ## Never
