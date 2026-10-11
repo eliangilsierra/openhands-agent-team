@@ -175,7 +175,7 @@ def render(agent_id: str, role_id: str, name: str, mission: str, runtime: dict, 
     }
     body = BODY.format(
         name=name, mission=mission, level=runtime["restriction_level"],
-        scope=LEVEL_SCOPE[runtime["restriction_level"]], stack=stack,
+        scope=subagent.get("scope") or LEVEL_SCOPE[runtime["restriction_level"]], stack=stack,
         skills=", ".join(f"`{s}`" for s in skills), role=role_id,
         job=bullets(subagent["job"]), never=bullets(subagent["never"] + COMMON_NEVER), checkpoint=checkpoint,
     )

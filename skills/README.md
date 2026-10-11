@@ -19,6 +19,7 @@ instructions.
 | [code-review](code-review/SKILL.md) | Twelve-dimension semantic PR review | Code Reviewer | [code-review.md](../templates/code-review.md) |
 | [security-review](security-review/SKILL.md) | Attack-surface-driven security review | Security Reviewer | [security-review.md](../templates/security-review.md) |
 | [ux-design](ux-design/SKILL.md) | UX specification and review for web and Android (Kotlin, Compose) | UX Designer | [ux-spec.md](../templates/ux-spec.md), [ux-review.md](../templates/ux-review.md) |
+| [technical-writing](technical-writing/SKILL.md) | README and docs/ with Diátaxis, arc42 and C4, audited | Technical Writer | [templates/docs/](../templates/docs/readme.md) |
 | [orchestration](orchestration/SKILL.md) | Route work, keep GitHub state consistent, escalate | Orchestrator | formats inside the Skill |
 
 ### Stack skills

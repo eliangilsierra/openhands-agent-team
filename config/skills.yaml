@@ -65,6 +65,13 @@ skills:
     consumers: [planner, developer, qa-engineer, code-reviewer]
     templates: [templates/ux-spec.md, templates/ux-review.md]
 
+  technical-writing:
+    path: skills/technical-writing/SKILL.md
+    purpose: Keep README and docs/ current with Diataxis, an arc42 and C4 architecture overview, consolidated UX specifications and an audited link structure.
+    agents: [technical-writer]
+    consumers: [architect, developer, orchestrator]
+    templates: [templates/docs/readme.md, templates/docs/tutorial.md, templates/docs/how-to.md, templates/docs/reference.md, templates/docs/explanation.md, templates/docs/architecture-overview.md, templates/docs/changelog.md]
+
   development:
     path: skills/development/SKILL.md
     purpose: Implement one task Issue on a dedicated branch and deliver a validated Pull Request.

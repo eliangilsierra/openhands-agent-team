@@ -286,6 +286,29 @@ agents:
       hard: [main protection, human code owner approval, secret scope]
       soft: [no file modification, never APPROVE, no active testing of deployed systems]
 
+  technical-writer:
+    restriction_level: R3
+    repository_read: true
+    issues: comment
+    labels: handoff
+    pull_requests: create
+    pull_request_reviews: none
+    branch_write: docs
+    writable_paths: ["README.md files", "CHANGELOG.md", "docs/"]
+    forbidden_paths: ["application source code", "tests", ".github/workflows/", "ADR decision text", "other roles' per-feature documents"]
+    main_branch_write: false
+    merge: false
+    source_modification: none
+    test_modification: none
+    command_execution: test-and-build
+    web_access: false
+    delegation: false
+    secrets: [GITHUB_TOKEN]
+    notes: Runs docs_audit.py and the project's Markdown lint; writes only on docs/<n>-<slug> branches.
+    enforcement:
+      hard: [main protection, merge approval, secret scope, R3 write paths per role (hook), docs/ branch prefix (hook)]
+      soft: [facts verified against code, no ADR decision edits]
+
   orchestrator:
     restriction_level: R0
     repository_read: true

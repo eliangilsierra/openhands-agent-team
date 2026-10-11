@@ -29,6 +29,7 @@
 #   description         when the coordinator should delegate to this subagent
 #   tools               Claude Code tools the subagent may use (never Agent: no nested spawning)
 #   job / never         the "Your job" and "Never" bullets of the system prompt
+#   scope               optional: the write scope sentence when it differs from the level's default
 # templates/runtime/claude/agents/*.md are generated from this file and from
 # config/specialists.yaml by scripts/generate_runtime.py; never edit them by hand.
 #
@@ -468,6 +469,50 @@ agents:
         template: templates/security-review.md
         persisted_in: GitHub Pull Request review (COMMENT or REQUEST_CHANGES, never APPROVE)
     hands_off_to: [developer]
+
+  technical-writer:
+    name: Technical Writer
+    profile_file: agents/technical-writer.md
+    label: "agent:docs"
+    execution_backend: claude-code-subagent
+    runtime:
+      model: sonnet
+      effort: medium
+      max_turns: 60
+      time_budget_minutes: 30
+      escalation: [opus]
+      restriction_level: R3
+      max_parallel: 1
+      isolation: none
+      memory: user
+      context_budget_tokens: 120000
+    subagent:
+      scope: "docs writer: only README.md files, CHANGELOG.md and docs/, pushed on docs/<n>-<slug> branches"
+      description: "Update the README and docs/ of a project after a feature is merged, with a professional structure (Diataxis, arc42 with C4 diagrams, consolidated UX specifications, indexes, changelog). Use once per finished feature."
+      tools: [Read, Grep, Glob, Bash, Write, Edit]
+      job:
+        - "Work on a branch docs/<feature-issue>-<slug> from the integration branch (branches.py); run docs_audit.py before and after your changes."
+        - "Document what the merged Pull Requests changed: README sections, docs/tutorials, how-to, reference, explanation, docs/architecture/overview.md (arc42 + C4 in Mermaid), docs/design (UX specifications), indexes and CHANGELOG.md, using templates/docs/."
+        - "Verify every fact against the code, configuration or merged Pull Requests; link ADRs and per-feature documents instead of copying them."
+        - "Open one Pull Request into the integration branch with the audit output as evidence, label it agent:qa and report."
+      never:
+        - "Write anything except README.md files, CHANGELOG.md and docs/ (the hooks enforce it)."
+        - "Change an ADR's decision text or another role's per-feature document."
+        - "Invent behaviour, endpoints, numbers or roadmaps."
+    mission: Keep each project's README and documentation current, accurate and professionally structured.
+    responsibilities:
+      - Update the README and docs/ after each finished feature
+      - Organise documentation by need (tutorials, how-to, reference, explanation)
+      - Maintain the arc42 architecture overview with C4 diagrams and links to ADRs
+      - Consolidate UX specifications into docs/design
+      - Keep indexes, links and the changelog consistent and audit them
+    skills: [technical-writing]
+    mcp: [github, filesystem]
+    outputs:
+      - artifact: Documentation Pull Request
+        template: .github/pull_request_template.md
+        persisted_in: README.md, CHANGELOG.md and docs/ of the target repository via a docs/ branch Pull Request
+    hands_off_to: [qa-engineer]
 
   orchestrator:
     name: Orchestrator

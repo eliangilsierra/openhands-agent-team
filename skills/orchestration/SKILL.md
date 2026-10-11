@@ -80,6 +80,8 @@ Repeat until every item is done or waiting on a human:
    - new or updated pull request → `qa-engineer`; QA `PASS` → `code-reviewer` and `security-reviewer`
      **in parallel**, plus `ux-designer` (`ux-review`) when the Pull Request changes interface files;
      every review `NO BLOCKING FINDINGS` → add `needs-human` (human gate: merge);
+   - the last task Pull Request of a feature merged → `technical-writer` (`documentation`) unless its
+     skip rule applies; its `docs/` Pull Request then follows QA and reviews like any change;
    - `changes-requested` or QA `FAIL` → the same specialist on the same branch again (cycle + 1,
      maximum 3).
 3. Delegate every stage that is ready, up to the limits, with a brief (step 4). Run independent

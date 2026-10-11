@@ -156,6 +156,19 @@ REQUIRED_FILES = [
     "templates/runtime/claude/hooks/model-pricing.json",
     "templates/runtime/claude/hooks/context-budgets.json",
     "skills/orchestration/scripts/usage_report.py",
+    "skills/ux-design/SKILL.md",
+    "skills/ux-design/scripts/ux_search.py",
+    "skills/ux-design/scripts/contrast.py",
+    "skills/ux-design/data/NOTICE.md",
+    "skills/ux-design/data/stacks/jetpack-compose.csv",
+    "skills/technical-writing/SKILL.md",
+    "skills/technical-writing/scripts/docs_audit.py",
+    "templates/ux-spec.md",
+    "templates/ux-review.md",
+    "templates/target-repo/docs/README.md",
+    "agents/ux-designer.md",
+    "agents/technical-writer.md",
+    "docs/decisions/ADR-0005-ux-designer-and-technical-writer.md",
 ]
 
 REQUIRED_DIRS = ["agents", "skills", "docs", "docs/decisions", "templates",
@@ -222,6 +235,7 @@ PERMISSION_FIELDS = {
 MERMAID_TYPES = (
     "flowchart", "graph", "sequenceDiagram", "stateDiagram", "stateDiagram-v2", "classDiagram",
     "erDiagram", "gantt", "pie", "journey", "gitGraph", "mindmap", "timeline",
+    "C4Context", "C4Container", "C4Component", "C4Dynamic", "C4Deployment",
 )
 
 # Secret patterns come from the team's single policy (Issue #15), read with the same scanner the agents use.

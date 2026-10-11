@@ -45,6 +45,11 @@
     "description": "Owned by the Security Reviewer agent."
   },
   {
+    "name": "agent:docs",
+    "color": "1d76db",
+    "description": "Owned by the Technical Writer agent (documentation of a finished feature)."
+  },
+  {
     "name": "agent:ux",
     "color": "1d76db",
     "description": "Owned by the UX Designer agent (UX specification or UX review)."
